@@ -1,0 +1,90 @@
+random_seed: 42
+
+data:
+  n_machines: 50
+  sampling_interval_minutes: 10
+  duration_days: 70
+  failures_per_machine_min: 5
+  failures_per_machine_max: 8
+  failure_lookahead_samples: 144   # 24h at 10-min intervals
+  degradation_window_samples: 1008 # 7 days
+  min_inter_failure_spacing: 1508  # degradation_window + 500
+
+sensors:
+  vibration_mm_s:
+    baseline_mean: 2.5
+    baseline_std: 0.8
+    bounds: [0.0, 50.0]
+    degradation_direction: 1
+    degradation_magnitude_factor: 4.0
+    degradation_alpha: 3.0
+  temperature_c:
+    baseline_mean: 65.0
+    baseline_std: 3.0
+    bounds: [0.0, 200.0]
+    degradation_direction: 1
+    degradation_magnitude_factor: 3.0
+    degradation_alpha: 2.5
+  pressure_bar:
+    baseline_mean: 8.0
+    baseline_std: 0.5
+    bounds: [0.0, 30.0]
+    degradation_direction: -1
+    degradation_magnitude_factor: 2.5
+    degradation_alpha: 2.0
+  current_a:
+    baseline_mean: 12.0
+    baseline_std: 1.5
+    bounds: [0.0, 100.0]
+    degradation_direction: 1
+    degradation_magnitude_factor: 3.0
+    degradation_alpha: 2.5
+  rpm:
+    baseline_mean: 1475.0
+    baseline_std: 10.0
+    bounds: [0.0, 3000.0]
+    degradation_direction: -1
+    degradation_magnitude_factor: 1.5
+    degradation_alpha: 1.5
+  acoustic_db:
+    baseline_mean: 72.0
+    baseline_std: 4.0
+    bounds: [0.0, 140.0]
+    degradation_direction: 1
+    degradation_magnitude_factor: 4.5
+    degradation_alpha: 3.5
+
+features:
+  rolling_windows: [6, 12, 36, 144]
+  ewma_spans: [12, 72]
+  lag_windows: [6, 12, 36, 144]
+  fft_window: 144
+  fft_subsample_every: 6
+
+model:
+  cv_n_splits: 5
+  cv_gap_samples: 144
+  cv_min_train_size: 50000
+  optuna_n_trials: 50
+  xgboost:
+    n_estimators: 2000
+    max_depth: 6
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.7
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+  lightgbm:
+    n_estimators: 2000
+    max_depth: -1
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.7
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+
+paths:
+  raw_data: data/raw
+  processed_data: data/processed
+  models: models
+  model_registry: configs/model_registry.json
