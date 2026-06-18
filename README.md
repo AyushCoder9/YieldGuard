@@ -210,25 +210,29 @@ Sweeps `t ∈ [0.1, 0.9]` (step 0.01) on each CV fold, selects `argmax F1`. Fina
 
 ### Results
 
-| Model | PR-AUC | ROC-AUC | F1 | Precision | Recall | Threshold |
-|---|---|---|---|---|---|---|
-| **XGBoost** | **0.851** | **0.926** | 0.783 | 0.748 | 0.821 | 0.42 |
-| LightGBM | 0.843 | 0.919 | 0.779 | 0.745 | 0.814 | 0.44 |
+| Model | PR-AUC | ROC-AUC | F1 | Threshold |
+|---|---|---|---|---|
+| **LightGBM** *(active)* | **0.9972** | **0.9998** | **0.971** | 0.74 |
+| XGBoost | 0.9972 | 0.9998 | 0.970 | 0.76 |
+
+> **Why so high?** Synthetic data with physics-based exponential degradation ramps gives gradient boosting a clear, learnable signal. Real-world IIoT data (sensor noise, irregular maintenance, environmental confounders) would yield lower metrics — typically PR-AUC 0.75–0.90. The methodology (TimeSeriesCV, no leakage, scale_pos_weight, threshold tuning) is what carries over to real data.
 
 PR-AUC is the primary metric — with ~9% positive class, ROC-AUC is misleading (a model predicting all-negative gets ROC-AUC ≈ 0.5, PR-AUC ≈ 0.09).
 
 ### Top Predictive Features
 
-| Rank | Feature | Importance | Interpretation |
-|---|---|---|---|
-| 1 | vibration_roll144_mean | 7.42% | 24h rolling vibration average captures slow degradation trend |
-| 2 | temperature_ema72_dev | 6.81% | Deviation from 12h EWMA — detects thermal anomaly onset |
-| 3 | vibration_fft_energy | 6.34% | Spectral energy increase signals bearing defect frequencies |
-| 4 | pressure_diff144 | 5.98% | 24h pressure drop is leading indicator of seal failure |
-| 5 | acoustic_roll144_mean | 5.71% | Sustained noise increase (not transient spike) |
-| 6 | current_over_rpm | 5.23% | Current/RPM ratio — mechanical efficiency degradation proxy |
-| 7 | rpm_lag144 | 4.89% | 24h lagged RPM — captures gradual shaft slowdown |
-| 8 | vibration_roll36_std | 4.52% | Short-window vibration variance — instability onset |
+| Rank | Feature | Interpretation |
+|---|---|---|
+| 1 | acoustic_db_fft_energy | Spectral energy surge — first sign of structural resonance change |
+| 2 | acoustic_db_roll144_mean | 24h acoustic mean — sustained noise, not transient spike |
+| 3 | temperature_c_roll144_mean | Long-window thermal trend — friction heat accumulation |
+| 4 | vibration_mm_s_fft_energy | Bearing defect frequencies emerge in spectral domain |
+| 5 | vibration_mm_s_roll144_mean | 24h vibration average — slow degradation trend |
+| 6 | temperature_c_roll144_skew | Distribution skew signals asymmetric heating pattern |
+| 7 | pressure_bar_roll144_mean | Sustained pressure drop — seal degradation indicator |
+| 8 | current_a_roll144_mean | Increased current draw over 24h — mechanical resistance |
+| 9 | pressure_bar_fft_entropy | Spectral entropy increase — pressure signal loses regularity |
+| 10 | vibration_mm_s_roll36_std | Short-window vibration variance — onset of instability |
 
 ---
 

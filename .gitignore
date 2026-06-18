@@ -17,11 +17,12 @@ env/
 data/raw/*.csv
 data/processed/*.parquet
 
-# Model artifacts (large — use Git LFS or bake into Docker)
-models/*.joblib
+# Model artifacts — large XGBoost excluded, active LightGBM + FeatureEngineer tracked
+models/xgboost_*.joblib
 models/*.pkl
-models/*.json
-!models/.gitkeep
+models/training_summary.json
+!models/feature_engineer_*.joblib
+!models/lightgbm_*.joblib
 
 # Notebooks output
 notebooks/.ipynb_checkpoints/

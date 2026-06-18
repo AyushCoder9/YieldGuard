@@ -1,4 +1,25 @@
 {
-  "active": null,
-  "entries": []
+  "active": "lightgbm_20260618_181658",
+  "entries": [
+    {
+      "name": "xgboost_20260618_174910",
+      "trained_at": "2026-06-18T17:49:10.244407+00:00",
+      "metrics": {
+        "pr_auc": 0.9971695413839979,
+        "roc_auc": 0.9997715611490889,
+        "threshold": 0.76,
+        "best_iteration": 261
+      }
+    },
+    {
+      "name": "lightgbm_20260618_181658",
+      "trained_at": "2026-06-18T18:16:58.458528+00:00",
+      "metrics": {
+        "pr_auc": 0.997164265254683,
+        "roc_auc": 0.9997705621758106,
+        "threshold": 0.74,
+        "best_iteration": 172
+      }
+    }
+  ]
 }
