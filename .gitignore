@@ -39,3 +39,6 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local context document (private session notes)
+CONTEXT.md
