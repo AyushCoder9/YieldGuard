@@ -21,7 +21,6 @@ st.set_page_config(
 with st.sidebar:
     st.image(
         "https://img.shields.io/badge/YieldGuard-v0.1-blue?style=for-the-badge",
-        use_container_width=True,
     )
     st.markdown("### YieldGuard")
     st.caption("AI-powered failure prediction for industrial PLC/IoT sensor streams")
