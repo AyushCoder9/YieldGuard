@@ -1,6 +1,10 @@
-# YieldGuard
+<p align="center">
+  <img src="./web/public/favicon.svg" alt="YieldGuard" width="72" height="72" />
+</p>
 
-> Know which machine will fail — a full day before it does.
+<h1 align="center">YieldGuard</h1>
+
+<p align="center"><em>Know which machine will fail — a full day before it does.</em></p>
 
 YieldGuard is an industrial predictive maintenance platform that detects equipment failures **24 hours in advance** using LightGBM on 196 engineered features from 6 sensor channels. The model runs entirely in the browser — no backend cold-start, no API dependency, instant results.
 

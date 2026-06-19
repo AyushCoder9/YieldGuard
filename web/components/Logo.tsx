@@ -14,37 +14,43 @@ export function LogoMark({ size = 32 }: { size?: number }) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 32 32"
+      viewBox="0 0 40 40"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="logo-signal" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="yg-hex" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#2DD4BF" />
           <stop offset="100%" stopColor="#6366F1" />
         </linearGradient>
-        <linearGradient id="logo-shield-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#2DD4BF" stopOpacity="0.12" />
-          <stop offset="100%" stopColor="#6366F1" stopOpacity="0.06" />
+        <linearGradient id="yg-wave" x1="8" y1="0" x2="32" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stopColor="#2DD4BF" />
+          <stop offset="55%"  stopColor="#2DD4BF" />
+          <stop offset="100%" stopColor="#6366F1" />
         </linearGradient>
       </defs>
-      {/* Shield */}
-      <path
-        d="M16 2.5L4.5 7.5V15.5C4.5 21.8 9.5 27.5 16 29.2C22.5 27.5 27.5 21.8 27.5 15.5V7.5L16 2.5Z"
-        fill="url(#logo-shield-fill)"
-        stroke="url(#logo-signal)"
-        strokeWidth="1.25"
-        strokeLinejoin="round"
-      />
-      {/* Heartbeat / sensor pulse */}
-      <path
-        d="M8 16 H10.5 L12.5 11.5 L15 20.5 L17.5 12.5 L19.5 16 H24"
-        stroke="url(#logo-signal)"
+
+      {/* Hexagon — industrial enclosure */}
+      <polygon
+        points="20,4 33.9,12 33.9,28 20,36 6.1,28 6.1,12"
+        fill="rgba(45,212,191,0.07)"
+        stroke="url(#yg-hex)"
         strokeWidth="1.5"
+      />
+
+      {/* Sensor trace: flat → gentle rise → spike → rapid drop → flat
+          Spike = detected anomaly; dot = the 24h-ahead catch moment. */}
+      <path
+        d="M8 23 L13 23 L15.5 20 L19 13 L21 23 L32 23"
+        stroke="url(#yg-wave)"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+
+      {/* Detection point */}
+      <circle cx="19" cy="13" r="1.5" fill="url(#yg-hex)" />
     </svg>
   );
 }

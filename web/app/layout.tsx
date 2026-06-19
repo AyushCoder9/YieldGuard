@@ -29,8 +29,11 @@ export const metadata: Metadata = {
     template: "%s | YieldGuard",
   },
   description:
-    "Industrial AI that listens to your machines. Upload sensor data and get a calibrated failure probability — 24 hours before anything breaks.",
-  keywords: ["predictive maintenance", "machine learning", "IIoT", "PLC", "industrial AI", "failure prediction"],
+    "Industrial predictive maintenance. Upload sensor data and get a calibrated failure probability — 24 hours before anything breaks.",
+  keywords: ["predictive maintenance", "machine learning", "IIoT", "PLC", "industrial", "failure prediction"],
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  },
   openGraph: {
     title: "YieldGuard — Know Which Machine Will Fail Before It Does",
     description: "Upload sensor data, get a failure probability in seconds. No server, no cold starts — the model runs right here.",
