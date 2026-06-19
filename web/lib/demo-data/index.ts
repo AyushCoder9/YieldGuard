@@ -186,16 +186,16 @@ export const DEMO_FLEET_STATS = {
   warning: 7,
   high: 3,
   critical: 2,
-  avgPrAuc: 0.847,
-  avgRocAuc: 0.923,
-  featuresEngineered: 256,
+  avgPrAuc: 0.8561,
+  avgRocAuc: 0.9753,
+  featuresEngineered: 196,
   dataPoints: 500443,
   modelsEnsemble: "XGBoost + LightGBM",
 };
 
 export const DEMO_MODEL_METRICS = {
-  xgboost: { prAuc: 0.851, rocAuc: 0.926, f1: 0.783, recall: 0.821, precision: 0.748, threshold: 0.42 },
-  lightgbm: { prAuc: 0.843, rocAuc: 0.919, f1: 0.779, recall: 0.814, precision: 0.745, threshold: 0.44 },
+  lightgbm: { prAuc: 0.8561, rocAuc: 0.9753, threshold: 0.614, trees: 270 },
+  xgboost:  { prAuc: 0.8567, rocAuc: 0.9746, threshold: 0.612, trees: 647 },
 };
 
 export const DEMO_TOP_FEATURES = [

@@ -254,7 +254,7 @@ export default function HomePage() {
             >
               {[
                 { val: "24h", label: "advance warning" },
-                { val: "256+", label: "sensor features" },
+                { val: "196+", label: "sensor features" },
                 { val: "0%", label: "data leaves device" },
               ].map(s => (
                 <div key={s.label} className="flex items-center gap-1.5 text-xs">
@@ -337,7 +337,7 @@ export default function HomePage() {
         <div className="max-w-screen-xl mx-auto px-4 py-6">
           <Stagger className="flex flex-wrap justify-center gap-8 md:gap-16">
             {[
-              { to: 256,    suffix: "+",  label: "Features engineered", decimals: 0 },
+              { to: 196,    suffix: "+",  label: "Features engineered", decimals: 0 },
               { to: 500443, suffix: "",   label: "Training data points", decimals: 0 },
               { to: 24,     suffix: "h",  label: "Prediction horizon",  decimals: 0 },
               { to: 0.85,   suffix: "",   label: "PR-AUC (validation)", decimals: 2 },
@@ -386,7 +386,7 @@ export default function HomePage() {
               <ExplainerStep
                 num="02"
                 icon={Activity}
-                title="AI analyzes 256+ patterns instantly"
+                title="AI analyzes 196 patterns instantly"
                 body="The model computes statistical fingerprints across vibration, temperature, pressure, current, RPM, and acoustics — looking at trends, spikes, and frequency signatures."
               />
               <ExplainerStep
@@ -474,7 +474,7 @@ export default function HomePage() {
                 icon: Zap,
                 color: "#6366F1",
                 title: "Results in under a second",
-                body: "256+ feature computation and tree-ensemble scoring happen client-side — no API call, no waiting.",
+                body: "196-feature computation and tree-ensemble scoring happen client-side — no API call, no waiting.",
               },
               {
                 icon: BarChart3,
@@ -525,7 +525,7 @@ export default function HomePage() {
                 {[
                   { label: "PR-AUC",   val: DEMO_FLEET_STATS.avgPrAuc.toFixed(3), color: "#2DD4BF" },
                   { label: "ROC-AUC",  val: DEMO_FLEET_STATS.avgRocAuc.toFixed(3), color: "#6366F1" },
-                  { label: "Features", val: "256+",                                color: "#F5A524"  },
+                  { label: "Features", val: "196+",                                color: "#F5A524"  },
                   { label: "CV Folds", val: "5",                                   color: "#34D399"  },
                 ].map(s => (
                   <div key={s.label} className="bg-cc-raised rounded-xl p-3 text-center min-w-[80px]">

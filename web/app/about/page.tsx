@@ -186,12 +186,10 @@ Calibration: IsotonicRegression on held-out fold`}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         {[
-                          { label: "PR-AUC",    val: met.prAuc.toFixed(3) },
-                          { label: "ROC-AUC",   val: met.rocAuc.toFixed(3) },
-                          { label: "F1",         val: met.f1.toFixed(3) },
-                          { label: "Recall",     val: met.recall.toFixed(3) },
-                          { label: "Precision",  val: met.precision.toFixed(3) },
-                          { label: "Threshold",  val: met.threshold.toFixed(2) },
+                          { label: "PR-AUC",    val: met.prAuc.toFixed(4) },
+                          { label: "ROC-AUC",   val: met.rocAuc.toFixed(4) },
+                          { label: "Threshold",  val: met.threshold.toFixed(3) },
+                          { label: "Trees",      val: String(met.trees) },
                         ].map(s => (
                           <div key={s.label} className="bg-cc-raised rounded-lg p-2 text-center">
                             <div className="font-mono font-semibold text-sm" style={{ color }}>{s.val}</div>
