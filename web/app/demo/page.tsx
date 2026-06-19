@@ -455,9 +455,7 @@ export default function DemoPage() {
                           {[
                             { label: "PR-AUC",    val: met.prAuc,    note: "primary metric" },
                             { label: "ROC-AUC",   val: met.rocAuc },
-                            { label: "F1 Score",  val: met.f1 },
-                            { label: "Recall",    val: met.recall },
-                            { label: "Precision", val: met.precision },
+                            { label: "Trees",     val: met.trees },
                             { label: "Threshold", val: met.threshold, note: "tuned" },
                           ].map(s => (
                             <div key={s.label} className="flex items-center justify-between py-1 border-b border-cc-border/40 last:border-0">
