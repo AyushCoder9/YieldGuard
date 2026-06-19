@@ -1,5 +1,5 @@
 {
-  "active": "lightgbm_20260618_181658",
+  "active": "lightgbm_20260619_153058",
   "entries": [
     {
       "name": "xgboost_20260618_174910",
@@ -19,6 +19,26 @@
         "roc_auc": 0.9997705621758106,
         "threshold": 0.74,
         "best_iteration": 172
+      }
+    },
+    {
+      "name": "xgboost_20260619_151415",
+      "trained_at": "2026-06-19T15:14:15.147598+00:00",
+      "metrics": {
+        "pr_auc": 0.856747668122973,
+        "roc_auc": 0.9746205712933497,
+        "threshold": 0.6119999999999999,
+        "best_iteration": 647
+      }
+    },
+    {
+      "name": "lightgbm_20260619_153058",
+      "trained_at": "2026-06-19T15:30:58.993583+00:00",
+      "metrics": {
+        "pr_auc": 0.856132224702761,
+        "roc_auc": 0.9753041722874775,
+        "threshold": 0.6140000000000001,
+        "best_iteration": 270
       }
     }
   ]

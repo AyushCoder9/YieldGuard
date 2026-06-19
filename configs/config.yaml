@@ -7,8 +7,10 @@ data:
   failures_per_machine_min: 5
   failures_per_machine_max: 8
   failure_lookahead_samples: 144   # 24h at 10-min intervals
-  degradation_window_samples: 1008 # 7 days
-  min_inter_failure_spacing: 1508  # degradation_window + 500
+  degradation_window_samples: 288  # ~48h — tighter window makes data harder
+  min_inter_failure_spacing: 788   # degradation_window + 500
+  hard_negative_rate: 0.06         # probability of injecting a recoverable excursion
+  baseline_variation_pct: 0.20     # machine-to-machine baseline scatter ±20%
 
 sensors:
   vibration_mm_s:
@@ -16,42 +18,42 @@ sensors:
     baseline_std: 0.8
     bounds: [0.0, 50.0]
     degradation_direction: 1
-    degradation_magnitude_factor: 4.0
+    degradation_magnitude_factor: 2.5
     degradation_alpha: 3.0
   temperature_c:
     baseline_mean: 65.0
     baseline_std: 3.0
     bounds: [0.0, 200.0]
     degradation_direction: 1
-    degradation_magnitude_factor: 3.0
+    degradation_magnitude_factor: 1.8
     degradation_alpha: 2.5
   pressure_bar:
     baseline_mean: 8.0
     baseline_std: 0.5
     bounds: [0.0, 30.0]
     degradation_direction: -1
-    degradation_magnitude_factor: 2.5
+    degradation_magnitude_factor: 1.5
     degradation_alpha: 2.0
   current_a:
     baseline_mean: 12.0
     baseline_std: 1.5
     bounds: [0.0, 100.0]
     degradation_direction: 1
-    degradation_magnitude_factor: 3.0
+    degradation_magnitude_factor: 1.8
     degradation_alpha: 2.5
   rpm:
     baseline_mean: 1475.0
     baseline_std: 10.0
     bounds: [0.0, 3000.0]
     degradation_direction: -1
-    degradation_magnitude_factor: 1.5
+    degradation_magnitude_factor: 1.0
     degradation_alpha: 1.5
   acoustic_db:
     baseline_mean: 72.0
     baseline_std: 4.0
     bounds: [0.0, 140.0]
     degradation_direction: 1
-    degradation_magnitude_factor: 4.5
+    degradation_magnitude_factor: 2.8
     degradation_alpha: 3.5
 
 features:
@@ -65,7 +67,7 @@ model:
   cv_n_splits: 5
   cv_gap_samples: 144
   cv_min_train_size: 50000
-  optuna_n_trials: 50
+  optuna_n_trials: 20
   xgboost:
     n_estimators: 2000
     max_depth: 6

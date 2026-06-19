@@ -1,293 +1,650 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
-import { StatusBadge } from "../../components/ui/StatusBadge";
-import { GaugeChart } from "../../components/ui/GaugeChart";
+import Papa from "papaparse";
+import { motion, AnimatePresence } from "framer-motion";
+import { Upload, ChevronDown, ChevronUp, Play, Download, AlertTriangle, Clock, X, Loader2, FileSpreadsheet, Sliders } from "lucide-react";
+import { clsx } from "clsx";
+import { Navbar } from "../../components/Navbar";
+import { Footer } from "../../components/Footer";
+import { GlassPanel } from "../../components/ui/GlassPanel";
+import { Tabs } from "../../components/ui/Tabs";
+import { ResultPanel } from "../../components/ui/ResultPanel";
+import { Tooltip } from "../../components/ui/Tooltip";
+import { predict, synthesizeReadings, parseCSVToReadings, csvTemplate, type SliderValues, type PredictionResult } from "../../lib/engine/predict";
+import { loadModel, type ModelSpec } from "../../lib/engine/model";
+import type { FeatureSpec } from "../../lib/engine/explain";
+import type { SensorReading } from "../../lib/engine/features";
 
-// ── API types ─────────────────────────────────────────────────────────────────
-interface HealthResponse {
-  status: string;
-  timestamp: string;
-  model_loaded: boolean;
-  model_name?: string;
-  version?: string;
-}
-
-interface ModelInfo {
-  model_name: string;
-  model_type: string;
-  pr_auc?: number;
-  roc_auc?: number;
-  threshold?: number;
-  training_date?: string;
-  feature_count?: number;
-  status: string;
-}
-
-interface MachineState {
-  machine_id: string;
-  buffer_size: number;
-  buffer_status: "warm" | "warming_up";
-  last_prediction?: {
-    failure_probability: number;
-    risk_level: string;
-    timestamp: string;
-  };
-}
-
-interface DriftReport {
-  overall_status: "stable" | "warning" | "critical" | "unavailable";
-  feature_count?: number;
-  features_drifted?: number;
-  timestamp: string;
-}
-
-// ── API client ────────────────────────────────────────────────────────────────
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://yieldguard-api.onrender.com";
-const API_KEY  = process.env.NEXT_PUBLIC_API_KEY  || "dev-key";
-
-async function apiFetch<T>(path: string): Promise<T | null> {
+/* ── Asset loader ──────────────────────────────────────────────────────────── */
+async function loadEngineAssets(): Promise<{ model: ModelSpec; featureSpec: FeatureSpec } | null> {
   try {
-    const r = await fetch(`${API_URL}${path}`, {
-      headers: { "x-api-key": API_KEY },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!r.ok) return null;
-    return r.json() as Promise<T>;
+    const [model, fsRes] = await Promise.all([
+      loadModel(),
+      fetch("/lib/engine/feature_spec.json"),
+    ]);
+    if (!fsRes.ok) throw new Error("feature_spec.json not found");
+    const featureSpec = await fsRes.json() as FeatureSpec;
+    return { model, featureSpec };
   } catch {
     return null;
   }
 }
 
-// ── Metric card ───────────────────────────────────────────────────────────────
-function MetricCard({ label, value, sub, color = "text-forge-text" }: {
-  label: string; value: string | number; sub?: string; color?: string;
+/* ── History entry ─────────────────────────────────────────────────────────── */
+interface HistoryEntry {
+  id: string;
+  ts: string;
+  inputType: "csv" | "sliders";
+  rowCount: number;
+  result: PredictionResult;
+}
+
+const HISTORY_KEY = "yieldguard-history";
+const MAX_HISTORY = 5;
+
+function loadHistory(): HistoryEntry[] {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]"); }
+  catch { return []; }
+}
+
+function saveHistory(entries: HistoryEntry[]) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY))); }
+  catch { /* ignore quota */ }
+}
+
+/* ── Sensor slider config ──────────────────────────────────────────────────── */
+const SENSOR_SLIDERS: {
+  key: keyof SliderValues;
+  label: string;
+  unit: string;
+  min: number;
+  max: number;
+  step: number;
+  defaultVal: number;
+  color: string;
+}[] = [
+  { key: "vibration",   label: "Vibration",   unit: "mm/s", min: 0.5,   max: 15,   step: 0.1,   defaultVal: 2.5,  color: "#2DD4BF" },
+  { key: "temperature", label: "Temperature", unit: "°C",   min: 40,    max: 120,  step: 0.5,   defaultVal: 65,   color: "#FB3B5C" },
+  { key: "pressure",    label: "Pressure",    unit: "bar",  min: 2,     max: 15,   step: 0.1,   defaultVal: 8.0,  color: "#6366F1" },
+  { key: "current",     label: "Current",     unit: "A",    min: 5,     max: 30,   step: 0.5,   defaultVal: 12.0, color: "#34D399" },
+  { key: "rpm",         label: "RPM",         unit: "rpm",  min: 800,   max: 2000, step: 5,     defaultVal: 1475, color: "#A78BFA" },
+  { key: "acoustic",    label: "Acoustic",    unit: "dB",   min: 55,    max: 110,  step: 0.5,   defaultVal: 72.0, color: "#FB923C" },
+];
+
+const DEFAULT_SLIDERS: SliderValues = {
+  vibration: 2.5,
+  temperature: 65,
+  pressure: 8.0,
+  current: 12.0,
+  rpm: 1475,
+  acoustic: 72.0,
+  trend: "healthy",
+};
+
+/* ── Sensor input tab ──────────────────────────────────────────────────────── */
+function SliderInput({ sliders, onChange }: {
+  sliders: SliderValues;
+  onChange: (s: SliderValues) => void;
 }) {
   return (
-    <div className="hmi-panel p-4">
-      <div className="text-forge-muted text-[10px] font-barlow tracking-widest uppercase mb-1">{label}</div>
-      <div className={`font-syne font-black text-2xl ${color}`}>{value}</div>
-      {sub && <div className="text-forge-muted text-xs font-dm mt-0.5">{sub}</div>}
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 mb-4">
+        <Tooltip content="Set sensor values as if reading a machine right now. YieldGuard will simulate a 48-hour history from these baseline values and predict failure risk.">
+          <span className="text-cc-muted text-xs cursor-help flex items-center gap-1 font-mono underline decoration-dotted underline-offset-2">
+            How does this work?
+          </span>
+        </Tooltip>
+        <button
+          onClick={() => onChange(DEFAULT_SLIDERS)}
+          className="text-[10px] font-mono text-cc-subtle hover:text-cc-muted transition-colors border border-cc-border/60 px-2 py-0.5 rounded cursor-pointer"
+        >
+          Reset defaults
+        </button>
+      </div>
+
+      {SENSOR_SLIDERS.map(s => {
+        const val = sliders[s.key] as number;
+        const pct = ((val - s.min) / (s.max - s.min)) * 100;
+        return (
+          <div key={s.key} className="flex items-center gap-3">
+            <span className="w-28 text-xs font-mono text-cc-muted flex-shrink-0">
+              {s.label}
+            </span>
+            <div className="flex-1 relative">
+              <input
+                type="range"
+                min={s.min}
+                max={s.max}
+                step={s.step}
+                value={val}
+                onChange={e => onChange({ ...sliders, [s.key]: +e.target.value })}
+                className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                aria-label={`${s.label} slider`}
+                style={{ accentColor: s.color }}
+              />
+            </div>
+            <span
+              className="w-20 text-right font-mono text-sm font-semibold sensor-val flex-shrink-0"
+              style={{ color: s.color }}
+            >
+              {val.toFixed(s.step < 1 ? 1 : 0)} {s.unit}
+            </span>
+          </div>
+        );
+      })}
+
+      <div className="mt-5 pt-4 border-t border-cc-border">
+        <div className="text-cc-muted text-[10px] font-semibold tracking-widest uppercase mb-2">
+          Machine Trend
+          <Tooltip content="Tell the model whether sensor values are stable (healthy), gradually worsening (degrading), or rapidly failing (critical). This shapes the synthetic time-history fed to the model.">
+            <span className="ml-1 cursor-help text-cc-subtle text-[9px]">[?]</span>
+          </Tooltip>
+        </div>
+        <div className="flex gap-2">
+          {(["healthy", "degrading", "critical"] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => onChange({ ...sliders, trend: t })}
+              className={clsx(
+                "flex-1 py-1.5 rounded-lg text-[11px] font-mono font-medium capitalize border transition-all cursor-pointer",
+                sliders.trend === t
+                  ? t === "critical"  ? "border-cc-danger/50 text-cc-danger bg-cc-danger/10"
+                  : t === "degrading" ? "border-cc-caution/50 text-cc-caution bg-cc-caution/10"
+                                      : "border-cc-healthy/50 text-cc-healthy bg-cc-healthy/10"
+                  : "border-cc-border text-cc-subtle hover:border-cc-border-strong"
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Status light ─────────────────────────────────────────────────────────────
-function StatusLight({ ok }: { ok: boolean | null }) {
+/* ── CSV upload panel ──────────────────────────────────────────────────────── */
+function CSVUpload({ readings, errors, onParse, onClear }: {
+  readings: SensorReading[];
+  errors: string[];
+  onParse: (rows: SensorReading[], errors: string[]) => void;
+  onClear: () => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function processFile(file: File) {
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete(results) {
+        const parseErrors: string[] = results.errors.map(e => e.message);
+        const parsed = parseCSVToReadings(results.data, parseErrors);
+        onParse(parsed, parseErrors);
+      },
+    });
+  }
+
   return (
-    <span className={`inline-block w-2 h-2 rounded-full ${ok === null ? "bg-forge-muted animate-pulse" : ok ? "bg-forge-green animate-pulse" : "bg-forge-red"}`} />
+    <div className="space-y-3">
+      {/* Template download */}
+      <div className="flex items-center justify-between">
+        <span className="text-cc-muted text-xs">
+          Need a template?{" "}
+          <button
+            onClick={() => {
+              const blob = new Blob([csvTemplate()], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = "yieldguard-template.csv"; a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="text-cc-healthy underline underline-offset-2 cursor-pointer font-mono text-xs"
+          >
+            Download sample CSV
+          </button>
+        </span>
+        <span className="text-cc-subtle text-[10px] font-mono">Min 144 rows (24h)</span>
+      </div>
+
+      {/* Drop zone */}
+      {readings.length === 0 ? (
+        <div
+          className={clsx(
+            "drop-zone",
+            dragging && "!border-cc-healthy !bg-cc-healthy/8"
+          )}
+          onClick={() => inputRef.current?.click()}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={e => {
+            e.preventDefault();
+            setDragging(false);
+            const file = e.dataTransfer.files[0];
+            if (file) processFile(file);
+          }}
+        >
+          <Upload size={28} className={clsx("mx-auto mb-2", dragging ? "text-cc-healthy" : "text-cc-subtle")} />
+          <div className="text-cc-text text-sm font-medium mb-0.5">
+            Drop CSV file here or <span className="text-cc-healthy underline cursor-pointer">browse</span>
+          </div>
+          <div className="text-cc-subtle text-xs font-mono">
+            Columns: timestamp · vibration_mm_s · temperature_c · pressure_bar · current_a · rpm · acoustic_db
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f); }}
+          />
+        </div>
+      ) : (
+        /* Preview */
+        <div className="glass rounded-xl p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <FileSpreadsheet size={14} className="text-cc-healthy" />
+              <span className="text-cc-text text-xs font-semibold">{readings.length} readings loaded</span>
+              {readings.length < 144 && (
+                <span className="text-cc-danger text-[10px] font-mono">({144 - readings.length} more needed)</span>
+              )}
+            </div>
+            <button
+              onClick={onClear}
+              className="text-cc-subtle hover:text-cc-muted transition-colors cursor-pointer"
+              aria-label="Clear uploaded file"
+            >
+              <X size={13} />
+            </button>
+          </div>
+          <div className="overflow-x-auto rounded-lg">
+            <table className="w-full text-[10px] font-mono">
+              <thead>
+                <tr className="border-b border-cc-border">
+                  {["#", "Vibration", "Temp", "Pressure", "Current", "RPM", "Acoustic"].map(h => (
+                    <th key={h} className="text-left px-2 py-1 text-cc-subtle font-semibold tracking-wide uppercase">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {readings.slice(0, 5).map((r, i) => (
+                  <tr key={i} className="border-b border-cc-border/30 last:border-0">
+                    <td className="px-2 py-1 text-cc-subtle">{i + 1}</td>
+                    <td className="px-2 py-1 text-cc-healthy">{r.vibration_mm_s.toFixed(3)}</td>
+                    <td className="px-2 py-1 text-cc-danger">{r.temperature_c.toFixed(2)}</td>
+                    <td className="px-2 py-1 text-cc-indigo">{r.pressure_bar.toFixed(3)}</td>
+                    <td className="px-2 py-1 text-[#34D399]">{r.current_a.toFixed(3)}</td>
+                    <td className="px-2 py-1 text-[#A78BFA]">{r.rpm.toFixed(1)}</td>
+                    <td className="px-2 py-1 text-[#FB923C]">{r.acoustic_db.toFixed(2)}</td>
+                  </tr>
+                ))}
+                {readings.length > 5 && (
+                  <tr>
+                    <td colSpan={7} className="px-2 py-1 text-cc-subtle text-center">
+                      ... {readings.length - 5} more rows
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Parse errors */}
+      {errors.length > 0 && (
+        <div className="glass rounded-xl p-3 border-cc-caution/20">
+          <div className="flex items-center gap-1.5 text-cc-caution text-xs font-semibold mb-1">
+            <AlertTriangle size={12} /> {errors.length} warning{errors.length > 1 ? "s" : ""}
+          </div>
+          <ul className="space-y-0.5">
+            {errors.slice(0, 3).map((e, i) => (
+              <li key={i} className="text-cc-muted text-[10px] font-mono">{e}</li>
+            ))}
+            {errors.length > 3 && <li className="text-cc-subtle text-[10px]">+{errors.length - 3} more</li>}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
-// ── Main dashboard ────────────────────────────────────────────────────────────
-export default function DashboardPage() {
-  const [health, setHealth]     = useState<HealthResponse | null>(null);
-  const [modelInfo, setModel]   = useState<ModelInfo | null>(null);
-  const [machines, setMachines] = useState<MachineState[]>([]);
-  const [drift, setDrift]       = useState<DriftReport | null>(null);
-  const [loading, setLoading]   = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-
-  const fetchAll = useCallback(async () => {
-    const [h, m, mc, d] = await Promise.all([
-      apiFetch<HealthResponse>("/health"),
-      apiFetch<ModelInfo>("/model/info"),
-      apiFetch<MachineState[]>("/machines"),
-      apiFetch<DriftReport>("/drift/report"),
-    ]);
-    setHealth(h);
-    setModel(m);
-    setMachines(mc ?? []);
-    setDrift(d);
-    setLastRefresh(new Date());
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchAll();
-    const id = setInterval(fetchAll, 30_000);
-    return () => clearInterval(id);
-  }, [fetchAll]);
-
-  const isOnline = health?.status === "ok";
+/* ── History panel ─────────────────────────────────────────────────────────── */
+function HistoryPanel({ entries, onSelect, onClear }: {
+  entries: HistoryEntry[];
+  onSelect: (e: HistoryEntry) => void;
+  onClear: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  if (entries.length === 0) return null;
 
   return (
-    <div className="min-h-screen bg-forge-black text-forge-text">
-      {/* ── Nav ───────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-40 border-b border-forge-border bg-forge-black/90 backdrop-blur-xl">
-        <div className="max-w-screen-2xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-1.5">
-              <div className="w-7 h-7 rounded-md bg-forge-amber flex items-center justify-center">
-                <span className="text-forge-black font-syne font-black text-xs">YG</span>
-              </div>
-              <span className="font-syne font-bold text-forge-text">YieldGuard</span>
-            </Link>
-            <span className="text-forge-border text-sm">|</span>
-            <span className="font-barlow tracking-widest uppercase text-xs text-forge-muted">Live Dashboard</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border font-mono ${isOnline ? "border-forge-green/40 text-forge-green bg-forge-green/10" : "border-forge-red/40 text-forge-red bg-forge-red/10"}`}>
-              <StatusLight ok={loading ? null : isOnline} />
-              {loading ? "Connecting…" : isOnline ? "API ONLINE" : "API OFFLINE"}
-            </div>
-            <button onClick={fetchAll} className="text-forge-muted hover:text-forge-text transition-colors text-xs font-barlow tracking-wider uppercase px-3 py-1.5 border border-forge-border rounded-lg hover:border-forge-amber/40">
-              Refresh
-            </button>
-            <Link href="/demo" className="text-forge-muted hover:text-forge-text transition-colors text-xs font-barlow tracking-wider uppercase">
-              Demo →
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-screen-2xl mx-auto px-6 py-6 space-y-6">
-        {/* ── Status banner ─────────────────────────────────────────── */}
-        {!loading && !isOnline && (
-          <div className="border border-forge-red/40 bg-forge-red/10 rounded-xl p-4 flex items-center gap-3">
-            <span className="text-forge-red text-2xl">⚠</span>
-            <div>
-              <div className="font-syne font-bold text-forge-red text-sm">API Unreachable</div>
-              <div className="text-forge-muted text-xs mt-0.5">
-                The prediction service at <code className="font-mono">{API_URL}</code> is not responding.
-                The API may be cold-starting (free tier takes ~30s). Try refreshing in a moment.
-                <br />
-                <Link href="/demo" className="text-forge-amber hover:underline ml-1">View interactive demo with sample data →</Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Top metrics ──────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <MetricCard label="API Status" value={isOnline ? "ONLINE" : loading ? "..." : "OFFLINE"}
-            color={isOnline ? "text-forge-green" : "text-forge-red"} sub={health?.timestamp?.slice(0, 19).replace("T", " ") ?? ""} />
-          <MetricCard label="Model Loaded" value={health?.model_loaded ? "YES" : loading ? "..." : "NO"}
-            color={health?.model_loaded ? "text-forge-green" : "text-forge-red"} sub={modelInfo?.model_type ?? ""} />
-          <MetricCard label="Machines Tracked" value={machines.length || "—"}
-            sub={`${machines.filter(m => m.buffer_status === "warm").length} warm buffers`} />
-          <MetricCard label="Drift Status"
-            value={drift?.overall_status?.toUpperCase() ?? (loading ? "..." : "N/A")}
-            color={drift?.overall_status === "stable" ? "text-forge-green" : drift?.overall_status === "critical" ? "text-forge-red" : "text-forge-amber"}
-            sub={drift?.features_drifted !== undefined ? `${drift.features_drifted} features drifted` : ""} />
-        </div>
-
-        {/* ── Model info ────────────────────────────────────────────── */}
-        {modelInfo && modelInfo.status !== "not_loaded" && (
-          <div className="hmi-panel p-5">
-            <div className="text-forge-muted font-barlow tracking-widest uppercase text-[10px] mb-3">Active Model</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {[
-                { k: "Name",      v: modelInfo.model_name },
-                { k: "Type",      v: modelInfo.model_type },
-                { k: "PR-AUC",    v: modelInfo.pr_auc?.toFixed(3) ?? "—" },
-                { k: "ROC-AUC",   v: modelInfo.roc_auc?.toFixed(3) ?? "—" },
-                { k: "Threshold", v: modelInfo.threshold?.toFixed(3) ?? "—" },
-                { k: "Features",  v: modelInfo.feature_count?.toString() ?? "—" },
-              ].map(s => (
-                <div key={s.k}>
-                  <div className="text-forge-muted text-[10px] font-barlow tracking-wider uppercase mb-0.5">{s.k}</div>
-                  <div className="font-mono text-forge-text text-sm font-semibold">{s.v}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Machines grid ─────────────────────────────────────────── */}
-        {machines.length > 0 ? (
-          <div>
-            <div className="text-forge-muted font-barlow tracking-widest uppercase text-xs mb-3">Machine States ({machines.length})</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {machines.map(m => {
-                const fp = m.last_prediction?.failure_probability ?? 0;
-                const rl = m.last_prediction?.risk_level ?? "LOW";
-                const status = (rl === "CRITICAL" ? "CRITICAL" : rl === "HIGH" ? "HIGH" : rl === "MEDIUM" ? "WARNING" : "OPERATIONAL") as "CRITICAL" | "HIGH" | "WARNING" | "OPERATIONAL";
+    <div className="glass rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-2.5 cursor-pointer"
+      >
+        <span className="flex items-center gap-2 text-xs font-mono text-cc-muted">
+          <Clock size={12} /> Recent analyses ({entries.length})
+        </span>
+        {open ? <ChevronUp size={13} className="text-cc-subtle" /> : <ChevronDown size={13} className="text-cc-subtle" />}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-cc-border px-4 pb-3 pt-2 space-y-1">
+              {entries.map(entry => {
+                const fpPct = (entry.result.probability * 100).toFixed(0);
+                const color = entry.result.probability > 0.75 ? "#FB3B5C"
+                  : entry.result.probability > 0.40 ? "#F5A524" : "#2DD4BF";
                 return (
-                  <div key={m.machine_id} className="hmi-panel p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono font-bold text-forge-amber text-sm">{m.machine_id}</span>
-                      <StatusBadge status={status} pulse />
-                    </div>
-                    <div className="flex items-center justify-center my-3">
-                      <GaugeChart value={fp} size={100} label={`${(fp * 100).toFixed(0)}%`} />
-                    </div>
-                    <div className="text-center">
-                      <div className="text-forge-muted text-[10px] font-barlow tracking-wider uppercase mb-1">
-                        Buffer: <span className={m.buffer_status === "warm" ? "text-forge-green" : "text-forge-amber"}>{m.buffer_status.toUpperCase()}</span>
-                      </div>
-                      {m.last_prediction && (
-                        <div className="text-forge-muted text-[10px] font-mono">
-                          {m.last_prediction.timestamp.slice(11, 19)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <button
+                    key={entry.id}
+                    onClick={() => onSelect(entry)}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-cc-raised transition-colors cursor-pointer text-left"
+                  >
+                    <span className="font-mono text-sm font-bold flex-shrink-0" style={{ color }}>
+                      {fpPct}%
+                    </span>
+                    <span className="flex-1 text-cc-muted text-[11px] font-mono truncate">
+                      {entry.inputType === "csv" ? `CSV · ${entry.rowCount} rows` : "Quick Try"}
+                    </span>
+                    <span className="text-cc-subtle text-[9px] font-mono flex-shrink-0">
+                      {new Date(entry.ts).toLocaleTimeString()}
+                    </span>
+                  </button>
                 );
               })}
+              <button
+                onClick={onClear}
+                className="text-cc-subtle text-[10px] font-mono hover:text-cc-muted transition-colors cursor-pointer mt-1"
+              >
+                Clear history
+              </button>
             </div>
-          </div>
-        ) : !loading && isOnline ? (
-          <div className="hmi-panel p-8 text-center">
-            <div className="text-forge-muted text-3xl mb-3">📡</div>
-            <div className="font-syne font-bold text-forge-text text-sm mb-1">No Active Machines</div>
-            <div className="text-forge-muted text-xs max-w-md mx-auto">
-              No machines have submitted readings yet. Send sensor data to <code className="font-mono text-forge-amber">/predict</code> to track machines here.
-            </div>
-            <div className="mt-4">
-              <a href={`${API_URL}/docs`} target="_blank" rel="noopener noreferrer"
-                className="text-forge-amber text-xs font-barlow tracking-wider uppercase hover:underline">
-                View API Docs →
-              </a>
-            </div>
-          </div>
-        ) : null}
-
-        {/* ── Drift report ──────────────────────────────────────────── */}
-        {drift && (
-          <div className="hmi-panel p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-forge-muted font-barlow tracking-widest uppercase text-[10px]">Drift Monitor</div>
-              <div className={`text-xs font-barlow font-semibold tracking-wider uppercase px-2 py-1 rounded-full border ${
-                drift.overall_status === "stable" ? "text-forge-green border-forge-green/40 bg-forge-green/10" :
-                drift.overall_status === "critical" ? "text-forge-red border-forge-red/40 bg-forge-red/10" :
-                drift.overall_status === "unavailable" ? "text-forge-muted border-forge-muted/40" :
-                "text-forge-amber border-forge-amber/40 bg-forge-amber/10"}`}>
-                {drift.overall_status}
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4 text-xs">
-              <div>
-                <div className="text-forge-muted font-barlow tracking-wider uppercase text-[10px] mb-0.5">Features Monitored</div>
-                <div className="font-mono font-semibold text-forge-text">{drift.feature_count ?? "—"}</div>
-              </div>
-              <div>
-                <div className="text-forge-muted font-barlow tracking-wider uppercase text-[10px] mb-0.5">Features Drifted</div>
-                <div className={`font-mono font-semibold ${(drift.features_drifted ?? 0) > 0 ? "text-forge-amber" : "text-forge-green"}`}>
-                  {drift.features_drifted ?? "—"}
-                </div>
-              </div>
-              <div>
-                <div className="text-forge-muted font-barlow tracking-wider uppercase text-[10px] mb-0.5">Last Checked</div>
-                <div className="font-mono text-forge-muted">{drift.timestamp?.slice(0, 19).replace("T", " ") ?? "—"}</div>
-              </div>
-            </div>
-            <div className="mt-3 pt-3 border-t border-forge-border text-xs text-forge-muted">
-              PSI &lt; 0.10 = stable · 0.10–0.20 = warning · &gt; 0.20 = critical. KS test p &lt; 0.01 triggers alert.
-            </div>
-          </div>
+          </motion.div>
         )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
-        {/* ── Footer ─────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between text-xs text-forge-muted font-mono pt-4 border-t border-forge-border">
-          <span>YieldGuard Dashboard · Auto-refreshes every 30s</span>
-          <span>Last: {lastRefresh?.toLocaleTimeString() ?? "—"}</span>
-          <a href={`${API_URL}/docs`} target="_blank" rel="noopener noreferrer" className="hover:text-forge-amber transition-colors">
-            API Docs →
-          </a>
+/* ── No model banner ─────────────────────────────────────────────────────── */
+function NoModelBanner() {
+  return (
+    <GlassPanel className="border-cc-caution/20" padding="p-4">
+      <div className="flex items-start gap-3">
+        <AlertTriangle size={16} className="text-cc-caution flex-shrink-0 mt-0.5" />
+        <div>
+          <div className="font-display font-semibold text-cc-text text-sm mb-1">Model not yet available</div>
+          <p className="text-cc-muted text-xs leading-relaxed">
+            The ML model (<code className="font-mono text-cc-text">model.json</code>) hasn't been exported yet. Run the Python training pipeline first:
+          </p>
+          <pre className="bg-cc-raised rounded-lg px-3 py-2 text-[10px] font-mono text-cc-text mt-2 overflow-x-auto">
+{`make pipeline
+python scripts/export_model.py`}
+          </pre>
+          <p className="text-cc-muted text-[10px] mt-2">
+            Meanwhile, try the{" "}
+            <Link href="/demo" className="text-cc-healthy underline underline-offset-2">
+              interactive demo →
+            </Link>
+          </p>
         </div>
       </div>
+    </GlassPanel>
+  );
+}
+
+/* ── Main page ─────────────────────────────────────────────────────────────── */
+const INPUT_TABS = [
+  { id: "sliders" as const, label: "Quick Try", icon: <Sliders size={12} /> },
+  { id: "csv"     as const, label: "Upload CSV", icon: <Upload   size={12} /> },
+];
+
+export default function DashboardPage() {
+  const [inputTab, setInputTab]       = useState<"sliders" | "csv">("sliders");
+  const [sliders, setSliders]         = useState<SliderValues>(DEFAULT_SLIDERS);
+  const [csvReadings, setCsvReadings] = useState<SensorReading[]>([]);
+  const [csvErrors, setCsvErrors]     = useState<string[]>([]);
+  const [engineState, setEngineState] = useState<
+    "idle" | "loading" | "ready" | "error" | "running"
+  >("idle");
+  const [assets, setAssets]           = useState<{ model: ModelSpec; featureSpec: FeatureSpec } | null>(null);
+  const [result, setResult]           = useState<PredictionResult | null>(null);
+  const [history, setHistory]         = useState<HistoryEntry[]>([]);
+
+  /* load engine once on mount */
+  useEffect(() => {
+    setEngineState("loading");
+    loadEngineAssets().then(a => {
+      if (a) { setAssets(a); setEngineState("ready"); }
+      else { setEngineState("error"); }
+    });
+    setHistory(loadHistory());
+  }, []);
+
+  const canRun = useCallback(() => {
+    if (engineState !== "ready") return false;
+    if (inputTab === "csv") return csvReadings.length >= 144;
+    return true;
+  }, [engineState, inputTab, csvReadings.length]);
+
+  async function runAnalysis() {
+    if (!assets || engineState !== "ready") return;
+    setEngineState("running");
+    setResult(null);
+
+    try {
+      const readings = inputTab === "sliders"
+        ? synthesizeReadings(sliders, 288)
+        : csvReadings;
+
+      await new Promise(r => setTimeout(r, 120)); // let UI update before sync compute
+
+      const res = predict(readings, assets.model, assets.featureSpec);
+      setResult(res);
+      setEngineState("ready");
+
+      const entry: HistoryEntry = {
+        id: Date.now().toString(),
+        ts: new Date().toISOString(),
+        inputType: inputTab,
+        rowCount: readings.length,
+        result: res,
+      };
+      const next = [entry, ...history].slice(0, MAX_HISTORY);
+      setHistory(next);
+      saveHistory(next);
+    } catch (err) {
+      console.error(err);
+      setEngineState("ready");
+    }
+  }
+
+  const activeReadings = inputTab === "sliders"
+    ? synthesizeReadings(sliders, 288)
+    : csvReadings;
+
+  return (
+    <div className="min-h-dvh bg-cc-bg text-cc-text flex flex-col">
+      <Navbar />
+
+      <div className="mt-[60px] border-b border-cc-border bg-cc-surface/60 backdrop-blur-sm sticky top-[60px] z-30">
+        <div className="max-w-screen-xl mx-auto px-4 h-10 flex items-center justify-between">
+          <span className="text-cc-muted text-xs font-mono">
+            Predictions run in-browser · No data leaves your device
+          </span>
+          <Link href="/demo" className="text-cc-muted hover:text-cc-text text-[11px] font-mono transition-colors">
+            Explore demo →
+          </Link>
+        </div>
+      </div>
+
+      <div className="flex-1 max-w-screen-xl mx-auto w-full px-4 py-6">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <motion.div
+            className="mb-6"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <h1 className="font-display font-bold text-2xl text-cc-text mb-1">
+              Machine Health Analysis
+            </h1>
+            <p className="text-cc-muted text-sm">
+              Upload your sensor data or dial in values manually — the model runs instantly in your browser.
+            </p>
+          </motion.div>
+
+          {engineState === "error" && <NoModelBanner />}
+
+          {engineState !== "error" && (
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+              {/* ── Left: input ─────────────────────────────────────────────── */}
+              <div className="space-y-4">
+                <GlassPanel padding="p-5">
+                  <Tabs tabs={INPUT_TABS} active={inputTab} onChange={(id) => setInputTab(id as "sliders" | "csv")} variant="pill" />
+
+                  <div className="mt-4">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={inputTab}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.18 }}
+                      >
+                        {inputTab === "sliders" ? (
+                          <SliderInput sliders={sliders} onChange={setSliders} />
+                        ) : (
+                          <CSVUpload
+                            readings={csvReadings}
+                            errors={csvErrors}
+                            onParse={(rows, errs) => { setCsvReadings(rows); setCsvErrors(errs); }}
+                            onClear={() => { setCsvReadings([]); setCsvErrors([]); }}
+                          />
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Run button */}
+                  <div className="mt-5 pt-4 border-t border-cc-border flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={runAnalysis}
+                      disabled={!canRun() || engineState === "running"}
+                      className={clsx(
+                        "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-display font-semibold transition-all cursor-pointer",
+                        canRun() && engineState !== "running"
+                          ? "bg-signal-gradient text-cc-ink hover:opacity-90 active:scale-[0.98]"
+                          : "bg-cc-raised text-cc-subtle cursor-not-allowed"
+                      )}
+                    >
+                      {engineState === "running" ? (
+                        <><Loader2 size={15} className="animate-spin" /> Analyzing…</>
+                      ) : engineState === "loading" ? (
+                        <><Loader2 size={15} className="animate-spin" /> Loading model…</>
+                      ) : (
+                        <><Play size={15} /> Run Analysis</>
+                      )}
+                    </button>
+
+                    {inputTab === "csv" && csvReadings.length > 0 && csvReadings.length < 144 && (
+                      <span className="text-cc-caution text-[11px] font-mono">
+                        Need {144 - csvReadings.length} more rows
+                      </span>
+                    )}
+
+                    {inputTab === "csv" && csvReadings.length === 0 && (
+                      <span className="text-cc-subtle text-[11px] font-mono">Upload a CSV first</span>
+                    )}
+
+                    {engineState === "loading" && (
+                      <span className="text-cc-subtle text-[11px] font-mono">Loading model…</span>
+                    )}
+                  </div>
+                </GlassPanel>
+
+                {/* History */}
+                <HistoryPanel
+                  entries={history}
+                  onSelect={e => setResult(e.result)}
+                  onClear={() => { setHistory([]); saveHistory([]); }}
+                />
+              </div>
+
+              {/* ── Right: result ─────────────────────────────────────────── */}
+              <div>
+                <AnimatePresence mode="wait">
+                  {engineState === "running" && (
+                    <motion.div
+                      key="running"
+                      className="glass rounded-2xl p-10 flex flex-col items-center justify-center gap-4"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    >
+                      <div className="relative w-14 h-14">
+                        <div className="absolute inset-0 rounded-full border-2 border-cc-healthy/20" />
+                        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-cc-healthy animate-spin" />
+                      </div>
+                      <div className="text-cc-muted text-sm font-mono text-center">
+                        Computing 250+ features<br />
+                        <span className="text-cc-subtle text-[11px]">Running tree ensemble…</span>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {!result && engineState !== "running" && (
+                    <motion.div
+                      key="empty"
+                      className="glass rounded-2xl p-8 flex flex-col items-center justify-center gap-4 text-center"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      style={{ minHeight: 280 }}
+                    >
+                      <div className="w-12 h-12 rounded-full bg-cc-surface-2 flex items-center justify-center">
+                        <Play size={20} className="text-cc-subtle ml-0.5" />
+                      </div>
+                      <div>
+                        <div className="font-display font-semibold text-cc-text text-sm mb-1">
+                          Ready to analyze
+                        </div>
+                        <p className="text-cc-muted text-xs leading-relaxed max-w-xs mx-auto">
+                          {inputTab === "sliders"
+                            ? "Set the slider values to match your machine's current readings, then hit Run."
+                            : "Upload a CSV with at least 144 rows (24 hours at 10-minute intervals), then hit Run."}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 justify-center text-[10px] font-mono text-cc-subtle">
+                        <span className="px-2 py-0.5 glass rounded-full">256 features</span>
+                        <span className="px-2 py-0.5 glass rounded-full">in-browser</span>
+                        <span className="px-2 py-0.5 glass rounded-full">instant</span>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {result && engineState !== "running" && (
+                    <ResultPanel
+                      key="result"
+                      result={result}
+                      readings={activeReadings}
+                      onReset={() => setResult(null)}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Footer />
     </div>
   );
 }

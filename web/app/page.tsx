@@ -1,436 +1,598 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowRight, Activity, ShieldCheck, Zap, Clock, Database, BarChart3, Upload, ChevronRight } from "lucide-react";
+import { clsx } from "clsx";
+import { Navbar } from "../components/Navbar";
+import { Footer } from "../components/Footer";
+import { Gauge } from "../components/ui/Gauge";
+import { GlassPanel } from "../components/ui/GlassPanel";
+import { RiskBadge } from "../components/ui/Badge";
+import { Reveal, Stagger, StaggerItem, AnimatedNumber, MagneticButton } from "../components/motion";
 import { DEMO_FLEET_STATS, DEMO_MACHINES } from "../lib/demo-data";
-import { StatusBadge } from "../components/ui/StatusBadge";
-import { GaugeChart } from "../components/ui/GaugeChart";
 
-// ── Animated counter ──────────────────────────────────────────────────────────
-function Counter({ to, suffix = "", prefix = "" }: { to: number; suffix?: string; prefix?: string }) {
-  const [val, setVal] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
+/* ── Animated sensor waveform in hero ─────────────────────────────────────── */
+function HeroWaveform() {
+  const [phase, setPhase] = useState(0);
+  const frameRef = useRef<number>(0);
+
   useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return;
-      obs.disconnect();
-      let start = 0;
-      const step = to / 60;
-      const id = setInterval(() => {
-        start = Math.min(start + step, to);
-        setVal(Math.floor(start));
-        if (start >= to) clearInterval(id);
-      }, 16);
-    });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, [to]);
-  return <span ref={ref}>{prefix}{val.toLocaleString()}{suffix}</span>;
-}
+    let t = 0;
+    function step() {
+      t += 0.012;
+      setPhase(t);
+      frameRef.current = requestAnimationFrame(step);
+    }
+    frameRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameRef.current);
+  }, []);
 
-// ── Animated sensor waveform ──────────────────────────────────────────────────
-function SensorWave() {
-  const points = Array.from({ length: 200 }, (_, i) => {
-    const x = i * 6;
-    const base = 40;
-    const y = base
-      + Math.sin(i * 0.15) * 12
-      + Math.sin(i * 0.08) * 6
-      + (i > 140 ? Math.sin((i - 140) * 0.4) * 18 * Math.exp((i - 140) / 40) : 0);
-    return `${x},${Math.max(5, Math.min(75, y))}`;
+  const N = 120;
+  const points = Array.from({ length: N }, (_, i) => {
+    const x = (i / (N - 1)) * 320;
+    const progress = i / N;
+    const base = 30;
+    const signal = Math.sin(i * 0.18 + phase) * 8
+                 + Math.sin(i * 0.07 + phase * 0.5) * 4;
+    const degradation = progress > 0.55
+      ? Math.exp((progress - 0.55) * 5) * 14 * Math.sin(i * 0.5 + phase * 2.5)
+      : 0;
+    const y = base + signal + degradation;
+    return `${x.toFixed(1)},${Math.max(4, Math.min(56, y)).toFixed(1)}`;
   }).join(" ");
 
+  const dangerStart = (0.55 / 1) * 320;
+
   return (
-    <svg viewBox="0 0 1200 80" className="w-full opacity-30" preserveAspectRatio="none">
+    <svg viewBox="0 0 320 60" className="w-full" preserveAspectRatio="none" style={{ height: 60 }}>
       <defs>
-        <linearGradient id="wg" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0%" stopColor="#F0A500" stopOpacity="0" />
-          <stop offset="40%" stopColor="#F0A500" stopOpacity="0.8" />
-          <stop offset="80%" stopColor="#FF3B5C" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#FF3B5C" stopOpacity="0.4" />
+        <linearGradient id="wave-grad" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%"  stopColor="#2DD4BF" stopOpacity="0" />
+          <stop offset="40%" stopColor="#2DD4BF" stopOpacity="1" />
+          <stop offset="65%" stopColor="#F5A524" stopOpacity="1" />
+          <stop offset="85%" stopColor="#FB3B5C" stopOpacity="1" />
+          <stop offset="100%" stopColor="#FB3B5C" stopOpacity="0.6" />
         </linearGradient>
+        <clipPath id="wave-clip">
+          <rect x="0" y="0" width="320" height="60" />
+        </clipPath>
       </defs>
-      <polyline points={points} fill="none" stroke="url(#wg)" strokeWidth="1.5" />
-      <line x1="840" x2="840" y1="0" y2="80" stroke="#F0A50060" strokeWidth="1" strokeDasharray="3,3" />
+      <polyline
+        points={points}
+        fill="none"
+        stroke="url(#wave-grad)"
+        strokeWidth="1.5"
+        clipPath="url(#wave-clip)"
+        style={{ filter: "drop-shadow(0 0 4px rgba(45,212,191,0.4))" }}
+      />
+      <line
+        x1={dangerStart} x2={dangerStart} y1="0" y2="60"
+        stroke="rgba(245,165,36,0.4)" strokeWidth="1" strokeDasharray="3 3"
+      />
     </svg>
   );
 }
 
-// ── Floating machine card ─────────────────────────────────────────────────────
-function FloatingMachineCard({ machine, delay }: { machine: (typeof DEMO_MACHINES)[0]; delay: number }) {
-  return (
-    <div
-      className="hmi-panel p-3 rounded-lg text-xs w-44"
-      style={{
-        animation: `float ${5 + delay}s ease-in-out infinite`,
-        animationDelay: `${delay}s`,
-      }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-mono font-semibold text-forge-amber text-xs">{machine.id}</span>
-        <StatusBadge status={machine.currentStatus} pulse />
-      </div>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-forge-muted font-barlow tracking-wide uppercase text-[10px]">Vib</span>
-          <span className="sensor-val">{machine.lastReading.vibration} mm/s</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-forge-muted font-barlow tracking-wide uppercase text-[10px]">Temp</span>
-          <span className="sensor-val">{machine.lastReading.temperature}°C</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-forge-muted font-barlow tracking-wide uppercase text-[10px]">Risk</span>
-          <span className={`font-mono text-xs font-semibold ${machine.failureProbability > 0.7 ? "text-forge-red" : machine.failureProbability > 0.4 ? "text-forge-amber" : "text-forge-green"}`}>
-            {(machine.failureProbability * 100).toFixed(0)}%
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Feature card ──────────────────────────────────────────────────────────────
-function FeatureCard({ icon, title, desc, delay }: { icon: string; title: string; desc: string; delay: number }) {
-  return (
-    <div className="forge-card p-6 group" style={{ animationDelay: `${delay}s` }}>
-      <div className="text-3xl mb-4">{icon}</div>
-      <h3 className="font-syne font-bold text-forge-text text-base mb-2 group-hover:text-forge-amber transition-colors">{title}</h3>
-      <p className="text-forge-muted text-sm leading-relaxed font-dm">{desc}</p>
-    </div>
-  );
-}
-
-// ── Process step ──────────────────────────────────────────────────────────────
-function ProcessStep({ num, title, desc, code, last }: { num: string; title: string; desc: string; code: string; last?: boolean }) {
-  return (
-    <div className="flex gap-6">
-      <div className="flex flex-col items-center">
-        <div className="w-10 h-10 rounded-full border border-forge-amber text-forge-amber font-syne font-bold flex items-center justify-center text-sm flex-shrink-0" style={{ boxShadow: "0 0 20px #F0A50030" }}>
-          {num}
-        </div>
-        {!last && <div className="w-px flex-1 bg-gradient-to-b from-forge-amber/40 to-transparent mt-2" />}
-      </div>
-      <div className="pb-10">
-        <h3 className="font-syne font-bold text-forge-text text-lg mb-1">{title}</h3>
-        <p className="text-forge-muted text-sm mb-3 leading-relaxed">{desc}</p>
-        <code className="block bg-forge-surface border border-forge-border rounded-lg px-4 py-3 text-xs font-mono text-forge-amber leading-relaxed">
-          {code}
-        </code>
-      </div>
-    </div>
-  );
-}
-
-// ── Main page ─────────────────────────────────────────────────────────────────
-export default function LandingPage() {
-  const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://yieldguard-api.onrender.com";
+/* ── Pulsing risk gauge that cycles healthy → critical ──────────────────── */
+function AnimatedRiskGauge() {
+  const [prob, setProb] = useState(0.05);
+  const dirRef = useRef(1);
 
   useEffect(() => {
-    fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(8000) })
-      .then(r => setApiStatus(r.ok ? "online" : "offline"))
-      .catch(() => setApiStatus("offline"));
-  }, [API_URL]);
+    const id = setInterval(() => {
+      setProb(p => {
+        const next = p + dirRef.current * 0.003;
+        if (next >= 0.92) dirRef.current = -1;
+        if (next <= 0.04) dirRef.current = 1;
+        return Math.max(0, Math.min(1, next));
+      });
+    }, 40);
+    return () => clearInterval(id);
+  }, []);
+
+  return <Gauge value={prob} size={140} />;
+}
+
+/* ── Floating live machine mini-card ─────────────────────────────────────── */
+function MiniMachineCard({ machine, style }: {
+  machine: (typeof DEMO_MACHINES)[0];
+  style?: React.CSSProperties;
+}) {
+  const color = machine.failureProbability > 0.7 ? "#FB3B5C"
+    : machine.failureProbability > 0.4 ? "#F5A524"
+    : "#2DD4BF";
 
   return (
-    <div className="min-h-screen bg-forge-black relative overflow-hidden">
+    <div
+      className="glass rounded-xl px-3 py-2.5 w-40 absolute"
+      style={{ ...style, animation: `float ${4 + (style?.animationDelay ? 1 : 0)}s ease-in-out infinite`, animationDelay: style?.animationDelay as string }}
+    >
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="font-mono text-[10px] font-bold text-cc-healthy">{machine.id}</span>
+        <RiskBadge level={machine.currentStatus} />
+      </div>
+      <div className="flex justify-between text-[9px]">
+        <span className="text-cc-subtle">Vib</span>
+        <span className="font-mono" style={{ color }}>{machine.lastReading.vibration} mm/s</span>
+      </div>
+      <div className="flex justify-between text-[9px]">
+        <span className="text-cc-subtle">Risk</span>
+        <span className="font-mono font-bold" style={{ color }}>
+          {(machine.failureProbability * 100).toFixed(0)}%
+        </span>
+      </div>
+    </div>
+  );
+}
 
-      {/* ── Nav ──────────────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-forge-border/50 bg-forge-black/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-forge-amber flex items-center justify-center">
-              <span className="text-forge-black font-syne font-black text-xs">YG</span>
-            </div>
-            <span className="font-syne font-bold text-forge-text tracking-tight">YieldGuard</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8 text-sm font-dm text-forge-muted">
-            <a href="#features" className="hover:text-forge-text transition-colors">Features</a>
-            <a href="#how-it-works" className="hover:text-forge-text transition-colors">How It Works</a>
-            <a href="#tech" className="hover:text-forge-text transition-colors">Tech</a>
-            <Link href="/demo" className="hover:text-forge-text transition-colors">Demo</Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border font-mono ${apiStatus === "online" ? "border-forge-green/40 text-forge-green bg-forge-green/10" : apiStatus === "offline" ? "border-forge-red/40 text-forge-red bg-forge-red/10" : "border-forge-border text-forge-muted bg-forge-surface"}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${apiStatus === "online" ? "bg-forge-green animate-pulse" : "bg-forge-muted"}`} />
-              API {apiStatus === "online" ? "ONLINE" : apiStatus === "offline" ? "OFFLINE" : "..."}
-            </div>
-            <Link href="/demo" className="bg-forge-amber text-forge-black text-sm font-syne font-bold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-              Live Demo
-            </Link>
+/* ── Use-case card ───────────────────────────────────────────────────────── */
+function UseCaseCard({ icon: Icon, title, machines, color }: {
+  icon: React.ElementType;
+  title: string;
+  machines: string;
+  color: string;
+}) {
+  return (
+    <StaggerItem>
+      <GlassPanel hover className="h-full" padding="p-5">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
+          style={{ background: `${color}18`, border: `1px solid ${color}30` }}
+        >
+          <Icon size={18} style={{ color }} />
+        </div>
+        <div className="font-display font-semibold text-cc-text text-sm mb-1">{title}</div>
+        <div className="text-cc-muted text-xs font-mono">{machines}</div>
+      </GlassPanel>
+    </StaggerItem>
+  );
+}
+
+/* ── Step card ───────────────────────────────────────────────────────────── */
+function ExplainerStep({ num, title, body, icon: Icon }: {
+  num: string; title: string; body: string; icon: React.ElementType;
+}) {
+  return (
+    <StaggerItem>
+      <div className="flex gap-4 items-start">
+        <div className="flex flex-col items-center flex-shrink-0">
+          <div className="w-8 h-8 rounded-full border border-cc-healthy/40 text-cc-healthy text-xs font-mono font-bold flex items-center justify-center shadow-healthy-glow">
+            {num}
           </div>
         </div>
-      </nav>
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Icon size={14} className="text-cc-healthy" />
+            <span className="font-display font-semibold text-cc-text text-sm">{title}</span>
+          </div>
+          <p className="text-cc-muted text-sm leading-relaxed">{body}</p>
+        </div>
+      </div>
+    </StaggerItem>
+  );
+}
 
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
+/* ── Main ─────────────────────────────────────────────────────────────────── */
+export default function HomePage() {
+  return (
+    <div className="min-h-dvh bg-cc-bg text-cc-text overflow-x-hidden">
+      <Navbar />
+
+      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      <section className="relative min-h-dvh flex items-center pt-[60px]">
         {/* Background */}
-        <div className="absolute inset-0 bg-forge-grid opacity-40" />
-        <div className="absolute inset-0 bg-hero-radial" />
+        <div className="absolute inset-0 bg-hero-radial opacity-60 pointer-events-none" />
+        <div className="absolute inset-0 bg-grid-cc opacity-40 pointer-events-none" />
+        <div className="aurora-mesh absolute inset-0 pointer-events-none" />
 
-        {/* Scanline */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-forge-amber/30 to-transparent animate-scan" style={{ animation: "scan 10s linear infinite" }} />
-        </div>
+        <div className="relative max-w-screen-xl mx-auto w-full px-4 py-20 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+          {/* Left — copy */}
+          <div>
+            <motion.div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-cc-healthy/30 text-cc-healthy text-[11px] font-mono tracking-widest uppercase mb-6"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              style={{ background: "rgba(45,212,191,0.06)" }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-cc-healthy animate-ping" />
+              Predictive Maintenance · In-Browser AI
+            </motion.div>
 
-        <div className="relative max-w-7xl mx-auto px-6 py-24 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Left column */}
-          <div className="stagger">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-forge-amber/10 border border-forge-amber/30 text-forge-amber text-xs font-barlow font-semibold tracking-widest uppercase mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-forge-amber animate-pulse" />
-              Industrial AI Platform
-            </div>
+            <motion.h1
+              className="font-display font-bold leading-[1.08] mb-6"
+              style={{ fontSize: "clamp(2.2rem, 4.5vw, 3.8rem)" }}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            >
+              Know which machine<br />will fail —{" "}
+              <span className="text-signal">
+                a full day before it does.
+              </span>
+            </motion.h1>
 
-            <h1 className="font-syne font-black leading-[0.95] mb-6" style={{ fontSize: "clamp(2.5rem, 5vw, 4.5rem)" }}>
-              <span className="text-forge-text">Predict Failures </span>
-              <span className="text-amber-gradient block">Before They</span>
-              <span className="text-forge-text">Happen.</span>
-            </h1>
+            <motion.p
+              className="text-cc-muted text-lg leading-relaxed mb-8 max-w-xl"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.16 }}
+            >
+              YieldGuard reads sensor data from your machines, spots degradation patterns invisible to the naked eye, and gives your maintenance team a full 24-hour warning — before a breakdown brings your line to a halt.
+            </motion.p>
 
-            <p className="text-forge-muted text-lg leading-relaxed mb-8 max-w-lg font-dm font-light">
-              YieldGuard ingests live PLC & IoT sensor streams, engineers
-              <strong className="text-forge-text font-medium"> 256 statistical features</strong>, and predicts
-              equipment failure <strong className="text-forge-text font-medium">24 hours in advance</strong> —
-              giving maintenance teams time to act.
-            </p>
+            <motion.div
+              className="flex flex-wrap gap-3 mb-10"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.24 }}
+            >
+              <MagneticButton>
+                <Link
+                  href="/demo"
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-signal-gradient text-cc-ink font-display font-semibold hover:opacity-90 transition-opacity"
+                >
+                  Try live demo <ArrowRight size={15} />
+                </Link>
+              </MagneticButton>
+              <Link
+                href="/dashboard"
+                className="glass-hover flex items-center gap-2 px-6 py-3 rounded-xl text-cc-text font-display font-semibold transition-all"
+              >
+                Analyze your data <ChevronRight size={15} className="text-cc-muted" />
+              </Link>
+            </motion.div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
+            {/* Trust row */}
+            <motion.div
+              className="flex flex-wrap gap-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.32 }}
+            >
               {[
-                { label: "Data Points", val: 500443, suffix: "" },
-                { label: "Features", val: 256, suffix: "+" },
-                { label: "Prediction Lead", val: 24, suffix: "h" },
+                { val: "24h", label: "advance warning" },
+                { val: "256+", label: "sensor features" },
+                { val: "0%", label: "data leaves device" },
               ].map(s => (
-                <div key={s.label} className="text-center">
-                  <div className="font-syne font-black text-2xl text-forge-amber">
-                    <Counter to={s.val} suffix={s.suffix} />
+                <div key={s.label} className="flex items-center gap-1.5 text-xs">
+                  <ShieldCheck size={12} className="text-cc-healthy flex-shrink-0" />
+                  <span className="font-display font-bold text-cc-text">{s.val}</span>
+                  <span className="text-cc-muted">{s.label}</span>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+
+          {/* Right — live vitals canvas */}
+          <motion.div
+            className="relative flex items-center justify-center"
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="relative w-full max-w-sm mx-auto">
+              {/* Central card */}
+              <GlassPanel glow="signal" padding="p-6" className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="text-cc-muted text-[10px] font-mono tracking-widest uppercase mb-0.5">
+                      Live Risk Monitor
+                    </div>
+                    <div className="font-display font-bold text-cc-text">Machine M-001</div>
                   </div>
-                  <div className="text-forge-muted text-xs font-barlow tracking-widest uppercase mt-0.5">{s.label}</div>
+                  <RiskBadge level="CRITICAL" pulse />
                 </div>
-              ))}
-            </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Link href="/demo" className="bg-forge-amber text-forge-black font-syne font-bold px-6 py-3 rounded-xl hover:opacity-90 transition-all hover:scale-105 flex items-center gap-2">
-                <span>Explore Demo</span>
-                <span>→</span>
-              </Link>
-              <Link href="/dashboard" className="border border-forge-border text-forge-text font-syne font-semibold px-6 py-3 rounded-xl hover:border-forge-amber/50 transition-all flex items-center gap-2">
-                Live Dashboard
-              </Link>
-            </div>
-          </div>
-
-          {/* Right column — floating cards */}
-          <div className="relative hidden lg:flex items-center justify-center h-96">
-            <div className="absolute inset-0 bg-forge-amber/5 rounded-2xl border border-forge-amber/10" />
-
-            {/* Central gauge */}
-            <div className="relative z-10">
-              <GaugeChart value={DEMO_MACHINES[0].failureProbability} size={160} label="M-001 Risk" />
-            </div>
-
-            {/* Floating cards */}
-            <div className="absolute top-4 left-4">
-              <FloatingMachineCard machine={DEMO_MACHINES[1]} delay={0} />
-            </div>
-            <div className="absolute bottom-4 right-4">
-              <FloatingMachineCard machine={DEMO_MACHINES[2]} delay={1.5} />
-            </div>
-            <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-4">
-              <FloatingMachineCard machine={DEMO_MACHINES[3]} delay={0.8} />
-            </div>
-          </div>
-        </div>
-
-        {/* Waveform at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 px-0">
-          <SensorWave />
-          <div className="text-right pr-6 pb-2 text-xs font-mono text-forge-red/70">← vibration_mm_s degradation pattern</div>
-        </div>
-      </section>
-
-      {/* ── Fleet overview strip ──────────────────────────────────────────── */}
-      <section className="border-y border-forge-border/50 bg-forge-surface/50 py-8">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-wrap items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-forge-muted text-sm font-barlow tracking-widest uppercase">Live Fleet Status</span>
-              <span className="text-forge-muted text-xs">(demo data)</span>
-            </div>
-            <div className="flex flex-wrap gap-6">
-              {[
-                { label: "Operational", val: DEMO_FLEET_STATS.operational, color: "text-forge-green" },
-                { label: "Warning",     val: DEMO_FLEET_STATS.warning,     color: "text-forge-amber" },
-                { label: "High Risk",   val: DEMO_FLEET_STATS.high,        color: "text-orange-400" },
-                { label: "Critical",    val: DEMO_FLEET_STATS.critical,    color: "text-forge-red" },
-              ].map(s => (
-                <div key={s.label} className="text-center">
-                  <div className={`font-syne font-black text-2xl ${s.color}`}>{s.val}</div>
-                  <div className="text-forge-muted text-xs font-barlow tracking-wider uppercase">{s.label}</div>
+                <div className="flex items-center justify-center mb-4">
+                  <AnimatedRiskGauge />
                 </div>
-              ))}
+
+                <div className="mb-3">
+                  <div className="text-cc-muted text-[9px] font-mono tracking-widest uppercase mb-1">
+                    VIBRATION · mm/s
+                  </div>
+                  <HeroWaveform />
+                  <div className="flex justify-between text-[8px] font-mono text-cc-subtle mt-0.5">
+                    <span>–72h</span>
+                    <span className="text-cc-caution">degradation onset</span>
+                    <span className="text-cc-danger">now</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {[
+                    { label: "Temp",  val: "87°C", color: "#FB3B5C" },
+                    { label: "Vib",   val: "8.4", color: "#F5A524" },
+                    { label: "RPM",   val: "1390", color: "#A78BFA" },
+                  ].map(s => (
+                    <div key={s.label} className="bg-cc-raised/60 rounded-lg py-1.5">
+                      <div className="font-mono text-xs font-bold sensor-val" style={{ color: s.color }}>
+                        {s.val}
+                      </div>
+                      <div className="text-[8px] text-cc-subtle font-mono tracking-wide uppercase">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </GlassPanel>
+
+              {/* Floating mini cards */}
+              <MiniMachineCard
+                machine={DEMO_MACHINES[1]}
+                style={{ top: -16, right: -20, animationDelay: "0s" }}
+              />
+              <MiniMachineCard
+                machine={DEMO_MACHINES[3]}
+                style={{ bottom: -12, left: -20, animationDelay: "1.8s" }}
+              />
             </div>
-            <div className="flex items-center gap-2 text-forge-muted text-xs font-mono">
-              <span className="w-2 h-2 rounded-full bg-forge-green animate-pulse" />
-              PR-AUC: <span className="text-forge-green font-semibold">0.847</span>
-              &nbsp;|&nbsp;ROC-AUC: <span className="text-forge-green font-semibold">0.923</span>
-            </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* ── Features ─────────────────────────────────────────────────────── */}
-      <section id="features" className="py-24 bg-forge-black relative">
-        <div className="absolute inset-0 bg-forge-grid opacity-20" />
-        <div className="relative max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="inline-block px-3 py-1 rounded-full bg-forge-surface border border-forge-border text-forge-muted text-xs font-barlow tracking-widest uppercase mb-4">
-              Platform Capabilities
-            </div>
-            <h2 className="font-syne font-black text-4xl md:text-5xl text-forge-text mb-4">
-              Built for the<br /><span className="text-amber-gradient">Plant Floor</span>
-            </h2>
-            <p className="text-forge-muted text-lg max-w-2xl mx-auto leading-relaxed">
-              Every component is engineered around the realities of industrial sensor data — noise, gaps, drift, and rare failure events.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
-            <FeatureCard delay={0.1} icon="📡" title="Real-Time Sensor Ingestion"
-              desc="Accepts live PLC/IoT streams over REST. Stateful per-machine buffer maintains 48h of history for full feature computation." />
-            <FeatureCard delay={0.2} icon="⚙️" title="256 Engineered Features"
-              desc="Rolling statistics, EWMA deviation, lag features, FFT spectral energy, and domain-specific cross-channel ratios — all per-machine to prevent data contamination." />
-            <FeatureCard delay={0.3} icon="🧠" title="Dual-Model Ensemble"
-              desc="XGBoost + LightGBM trained with TimeSeriesExpandingCV and Bayesian HPO. Median best-iteration refit prevents overfitting on the final model." />
-            <FeatureCard delay={0.4} icon="⏱️" title="24-Hour Prediction Horizon"
-              desc="144-sample lookahead window with 24h gap between train/val splits eliminates label leakage. Threshold tuned for maximum F1 per model." />
-            <FeatureCard delay={0.5} icon="🔍" title="SHAP Explainability"
-              desc="Every prediction explained via TreeExplainer SHAP values. Separate /explain endpoint keeps the fast prediction path under 50ms." />
-            <FeatureCard delay={0.6} icon="📊" title="PSI Drift Monitor"
-              desc="Population Stability Index + Kolmogorov-Smirnov test track feature distribution drift between training reference and live inference." />
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works ─────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-24 bg-forge-surface/30">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="inline-block px-3 py-1 rounded-full bg-forge-surface border border-forge-border text-forge-muted text-xs font-barlow tracking-widest uppercase mb-4">
-              Pipeline
-            </div>
-            <h2 className="font-syne font-black text-4xl md:text-5xl text-forge-text">
-              From Raw Signal to<br /><span className="text-amber-gradient">Actionable Alert</span>
-            </h2>
-          </div>
-
-          <div className="max-w-2xl mx-auto">
-            <ProcessStep num="01" title="Synthetic PLC Data Synthesis"
-              desc="50 machines × 70 days × 10-min intervals = 504k rows. Physically-modelled exponential degradation ramps, seasonal shift patterns, heteroscedastic noise, and intentional quality issues."
-              code={`X(t) = μ + seasonal(t) + degradation(t, t_fail) + spike(t) + ε(t)
-degradation: exp(α·progress) ramp, α=3.0 for vibration
-positive class: ~9.3%  |  failures: 5–8 per machine`} />
-            <ProcessStep num="02" title="Feature Engineering (256 features)"
-              desc="FeatureEngineer(TransformerMixin) — serialized alongside model to guarantee inference parity. ALL operations inside groupby('machine_id')."
-              code={`Rolling stats   (mean/std/range/skew/kurt) × 4 windows  → 120
-EWMA + deviation × 2 spans                              →  24
-Lag + diff + pct_change × 4 lags                        →  72
-Rate of change (raw + smoothed)                         →  12
-FFT energy/dominant_hz/spectral_entropy (subsampled)    →  18
-Cross-channel (torque proxy, power, pressure/temp)      →   4`} />
-            <ProcessStep num="03" title="Training — TimeSeriesCV + Optuna"
-              desc="5-fold expanding window CV with 144-sample (24h) gap. No SMOTE — scale_pos_weight ≈ 9.8 handles imbalance. Final refit uses median best_iteration across folds."
-              code={`Objective: PR-AUC (correct metric for ~9% positive class)
-HPO: Optuna Bayesian (TPE), 10–50 trials
-XGBoost:  PR-AUC 0.851  ROC-AUC 0.926  F1 0.783
-LightGBM: PR-AUC 0.843  ROC-AUC 0.919  F1 0.779`} />
-            <ProcessStep num="04" title="Serve + Monitor" last
-              desc="FastAPI with stateful PerMachineBuffer (288 samples). Single reading per /predict call — buffer handles feature window. Drift monitored via PSI + KS test."
-              code={`POST /predict  → failure_probability, risk_level, top_risk_factors
-POST /explain  → SHAP waterfall (separate, async-ready)
-GET  /drift    → PSI scores, KS p-values, overall status`} />
-          </div>
-        </div>
-      </section>
-
-      {/* ── Tech stack ───────────────────────────────────────────────────── */}
-      <section id="tech" className="py-24 bg-forge-black">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="font-syne font-black text-3xl text-forge-text mb-2">Built With</h2>
-            <p className="text-forge-muted text-sm">The exact stack referenced in the JD</p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      {/* ── Metrics strip ─────────────────────────────────────────────────── */}
+      <div className="border-y border-cc-border bg-cc-surface/60 backdrop-blur-sm">
+        <div className="max-w-screen-xl mx-auto px-4 py-6">
+          <Stagger className="flex flex-wrap justify-center gap-8 md:gap-16">
             {[
-              { name: "XGBoost",     role: "Boosting" },
-              { name: "LightGBM",   role: "Boosting" },
-              { name: "Optuna",      role: "HPO" },
-              { name: "SHAP",        role: "Explainability" },
-              { name: "Pandas",      role: "Data" },
-              { name: "FastAPI",     role: "Serving" },
-              { name: "Pydantic v2", role: "Validation" },
-              { name: "scikit-learn",role: "Pipelines" },
-              { name: "SciPy",       role: "Statistics" },
-              { name: "NumPy",       role: "Numerics" },
-              { name: "Next.js 15",  role: "Frontend" },
-              { name: "Render",      role: "Deploy" },
-            ].map(t => (
-              <div key={t.name} className="forge-card p-4 text-center">
-                <div className="font-syne font-bold text-forge-text text-sm mb-0.5">{t.name}</div>
-                <div className="text-forge-muted text-xs font-barlow tracking-wider uppercase">{t.role}</div>
-              </div>
+              { to: 256,    suffix: "+",  label: "Features engineered", decimals: 0 },
+              { to: 500443, suffix: "",   label: "Training data points", decimals: 0 },
+              { to: 24,     suffix: "h",  label: "Prediction horizon",  decimals: 0 },
+              { to: 0.85,   suffix: "",   label: "PR-AUC (validation)", decimals: 2 },
+            ].map(s => (
+              <StaggerItem key={s.label}>
+                <div className="text-center">
+                  <div className="font-display font-bold text-2xl text-cc-text">
+                    <AnimatedNumber to={s.to} suffix={s.suffix} decimals={s.decimals} />
+                  </div>
+                  <div className="text-cc-subtle text-[10px] font-mono tracking-widest uppercase mt-0.5">
+                    {s.label}
+                  </div>
+                </div>
+              </StaggerItem>
             ))}
+          </Stagger>
+        </div>
+      </div>
+
+      {/* ── 3-step plain-language explainer ───────────────────────────────── */}
+      <section className="py-20 max-w-screen-xl mx-auto px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <div>
+            <Reveal>
+              <div className="inline-block text-[10px] font-mono tracking-widest uppercase text-cc-healthy mb-4 border border-cc-healthy/30 px-3 py-1 rounded-full" style={{ background: "rgba(45,212,191,0.06)" }}>
+                How it works
+              </div>
+              <h2 className="font-display font-bold text-cc-text mb-4" style={{ fontSize: "clamp(1.8rem, 3vw, 2.6rem)" }}>
+                Like a doctor's check-up —<br />
+                <span className="text-signal">for your machines.</span>
+              </h2>
+              <p className="text-cc-muted text-base leading-relaxed">
+                Just as a doctor reads vital signs to catch illness early, YieldGuard reads your machine's sensor signals to detect wear, stress, and abnormal behavior — before anything breaks.
+              </p>
+            </Reveal>
+          </div>
+
+          <div>
+            <Stagger staggerDelay={0.12} className="space-y-6">
+              <ExplainerStep
+                num="01"
+                icon={Database}
+                title="Connect your sensors (or try with sample data)"
+                body="Upload a CSV from your historian or PLC — or use the quick-try panel to enter current readings manually. No setup, no integration needed."
+              />
+              <ExplainerStep
+                num="02"
+                icon={Activity}
+                title="AI analyzes 256+ patterns instantly"
+                body="The model computes statistical fingerprints across vibration, temperature, pressure, current, RPM, and acoustics — looking at trends, spikes, and frequency signatures."
+              />
+              <ExplainerStep
+                num="03"
+                icon={Zap}
+                title="Get a plain-language 24h warning"
+                body="A clear risk score with an action: schedule maintenance, dispatch crew, or keep monitoring. No jargon, no false alarms — just what you need to know."
+              />
+            </Stagger>
           </div>
         </div>
       </section>
 
-      {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-forge-amber/5 to-forge-red/5" />
-        <div className="absolute inset-0 bg-forge-grid opacity-20" />
-        <div className="relative max-w-3xl mx-auto px-6 text-center">
-          <h2 className="font-syne font-black text-4xl md:text-5xl text-forge-text mb-4">
-            See It In Action
-          </h2>
-          <p className="text-forge-muted text-lg mb-8 leading-relaxed">
-            The demo page runs a complete, isolated simulation — pick a machine,
-            fast-forward through sensor degradation, and watch the failure
-            probability climb in real time.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/demo"
-              className="bg-forge-amber text-forge-black font-syne font-black px-8 py-4 rounded-xl text-lg hover:opacity-90 transition-all hover:scale-105"
-              style={{ boxShadow: "0 0 40px #F0A50040" }}>
-              Launch Interactive Demo →
+      {/* ── Fleet status demo strip ────────────────────────────────────────── */}
+      <section className="py-16 bg-cc-surface/30 border-y border-cc-border">
+        <div className="max-w-screen-xl mx-auto px-4">
+          <Reveal className="text-center mb-8">
+            <div className="text-[10px] font-mono tracking-widest uppercase text-cc-muted mb-2">Demo fleet · 5 sample machines</div>
+            <h3 className="font-display font-bold text-cc-text text-xl">Real-time fleet overview</h3>
+          </Reveal>
+
+          <Stagger className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {DEMO_MACHINES.map(m => {
+              const color = m.failureProbability > 0.7 ? "#FB3B5C"
+                : m.failureProbability > 0.4 ? "#F5A524" : "#2DD4BF";
+              return (
+                <StaggerItem key={m.id}>
+                  <GlassPanel padding="p-3" className="text-center">
+                    <div className="font-mono font-bold text-xs mb-1" style={{ color }}>
+                      {m.id}
+                    </div>
+                    <div className="text-cc-subtle text-[9px] mb-2 truncate">{m.type}</div>
+                    <Gauge value={m.failureProbability} size={64} showValue={false} />
+                    <div className="mt-2">
+                      <RiskBadge level={m.currentStatus} />
+                    </div>
+                  </GlassPanel>
+                </StaggerItem>
+              );
+            })}
+          </Stagger>
+
+          <Reveal className="text-center mt-6">
+            <Link
+              href="/demo"
+              className="inline-flex items-center gap-1.5 text-cc-healthy text-sm font-mono hover:gap-2.5 transition-all"
+            >
+              Explore the interactive demo <ArrowRight size={14} />
             </Link>
-            <a href="https://github.com/AyushCoder9/YieldGuard" target="_blank" rel="noopener noreferrer"
-              className="border border-forge-border text-forge-text font-syne font-semibold px-8 py-4 rounded-xl text-lg hover:border-forge-amber/50 transition-all">
-              View Source
-            </a>
-          </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="border-t border-forge-border py-8">
-        <div className="max-w-7xl mx-auto px-6 flex flex-wrap justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-forge-amber flex items-center justify-center">
-              <span className="text-forge-black font-black text-xs">YG</span>
-            </div>
-            <span className="font-syne font-bold text-forge-muted text-sm">YieldGuard</span>
+      {/* ── Use cases ─────────────────────────────────────────────────────── */}
+      <section className="py-20 max-w-screen-xl mx-auto px-4">
+        <Reveal className="text-center mb-10">
+          <div className="text-[10px] font-mono tracking-widest uppercase text-cc-muted mb-3 border border-cc-border inline-block px-3 py-1 rounded-full">
+            Works with
           </div>
-          <div className="flex items-center gap-6 text-forge-muted text-xs font-barlow tracking-wider">
-            <Link href="/demo" className="hover:text-forge-text transition-colors">Demo</Link>
-            <Link href="/dashboard" className="hover:text-forge-text transition-colors">Dashboard</Link>
-            <a href="https://github.com/AyushCoder9/YieldGuard" target="_blank" rel="noopener noreferrer" className="hover:text-forge-text transition-colors">GitHub</a>
-            <a href={`${API_URL}/docs`} target="_blank" rel="noopener noreferrer" className="hover:text-forge-text transition-colors">API Docs</a>
-          </div>
-          <div className="text-forge-subtle text-xs font-mono">v1.0.0</div>
+          <h2 className="font-display font-bold text-cc-text" style={{ fontSize: "clamp(1.6rem, 2.5vw, 2.2rem)" }}>
+            Any machine with sensors
+          </h2>
+        </Reveal>
+
+        <Stagger className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <UseCaseCard icon={Activity}    color="#2DD4BF" title="CNC Spindles"        machines="Milling · Turning · Drilling" />
+          <UseCaseCard icon={BarChart3}   color="#6366F1" title="Hydraulic Presses"   machines="Stamping · Forging · Forming" />
+          <UseCaseCard icon={Zap}         color="#F5A524" title="Coolant Pumps"       machines="Centrifugal · Gear · Diaphragm" />
+          <UseCaseCard icon={ShieldCheck} color="#34D399" title="Conveyor Drives"     machines="Belt · Roller · Chain systems" />
+        </Stagger>
+      </section>
+
+      {/* ── Key capabilities strip ────────────────────────────────────────── */}
+      <section className="py-16 bg-cc-surface/30 border-y border-cc-border">
+        <div className="max-w-screen-xl mx-auto px-4">
+          <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              {
+                icon: ShieldCheck,
+                color: "#2DD4BF",
+                title: "Runs entirely in your browser",
+                body: "The AI model is downloaded once and runs locally. No sensor readings ever leave your device.",
+              },
+              {
+                icon: Zap,
+                color: "#6366F1",
+                title: "Results in under a second",
+                body: "256+ feature computation and tree-ensemble scoring happen client-side — no API call, no waiting.",
+              },
+              {
+                icon: BarChart3,
+                color: "#F5A524",
+                title: "Explains every prediction",
+                body: "Plain-English risk factors tell you exactly which sensor triggered the alert and in which direction.",
+              },
+            ].map(c => (
+              <StaggerItem key={c.title}>
+                <GlassPanel hover padding="p-6" className="h-full">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                    style={{ background: `${c.color}12`, border: `1px solid ${c.color}25` }}
+                  >
+                    <c.icon size={20} style={{ color: c.color }} />
+                  </div>
+                  <div className="font-display font-semibold text-cc-text mb-2">{c.title}</div>
+                  <p className="text-cc-muted text-sm leading-relaxed">{c.body}</p>
+                </GlassPanel>
+              </StaggerItem>
+            ))}
+          </Stagger>
         </div>
-      </footer>
+      </section>
+
+      {/* ── Tech specs callout (for technical readers) ────────────────────── */}
+      <section className="py-16 max-w-screen-xl mx-auto px-4">
+        <Reveal>
+          <GlassPanel padding="p-6 md:p-8">
+            <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
+              <div className="flex-1">
+                <div className="text-[10px] font-mono tracking-widest uppercase text-cc-muted mb-2">Under the hood</div>
+                <h3 className="font-display font-bold text-cc-text text-lg mb-3">
+                  Production-grade ML, not a toy model
+                </h3>
+                <p className="text-cc-muted text-sm leading-relaxed mb-4">
+                  LightGBM + XGBoost ensemble, trained with time-series expanding cross-validation (no data leakage), Optuna Bayesian HPO, isotonic calibration for honest probabilities, and PSI drift monitoring in production.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {["LightGBM", "XGBoost", "Optuna", "SHAP", "scikit-learn", "FastAPI"].map(t => (
+                    <span key={t} className="text-[10px] font-mono text-cc-muted border border-cc-border px-2 py-0.5 rounded-full">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-shrink-0 grid grid-cols-2 gap-3">
+                {[
+                  { label: "PR-AUC",   val: DEMO_FLEET_STATS.avgPrAuc.toFixed(3), color: "#2DD4BF" },
+                  { label: "ROC-AUC",  val: DEMO_FLEET_STATS.avgRocAuc.toFixed(3), color: "#6366F1" },
+                  { label: "Features", val: "256+",                                color: "#F5A524"  },
+                  { label: "CV Folds", val: "5",                                   color: "#34D399"  },
+                ].map(s => (
+                  <div key={s.label} className="bg-cc-raised rounded-xl p-3 text-center min-w-[80px]">
+                    <div className="font-mono font-bold text-base" style={{ color: s.color }}>{s.val}</div>
+                    <div className="text-[9px] text-cc-subtle font-mono tracking-wide uppercase mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-cc-border flex items-center gap-3">
+              <Link
+                href="/about"
+                className="text-cc-muted hover:text-cc-text text-xs font-mono transition-colors flex items-center gap-1"
+              >
+                Full methodology <ChevronRight size={11} />
+              </Link>
+              <span className="text-cc-border">·</span>
+              <Link
+                href="/guide"
+                className="text-cc-muted hover:text-cc-text text-xs font-mono transition-colors flex items-center gap-1"
+              >
+                How to use it <ChevronRight size={11} />
+              </Link>
+            </div>
+          </GlassPanel>
+        </Reveal>
+      </section>
+
+      {/* ── Final CTA ─────────────────────────────────────────────────────── */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-signal-gradient opacity-5 pointer-events-none" />
+        <div className="absolute inset-0 bg-grid-cc opacity-20 pointer-events-none" />
+        <div className="relative max-w-3xl mx-auto px-4 text-center">
+          <Reveal>
+            <div className="text-[10px] font-mono tracking-widest uppercase text-cc-healthy mb-4">
+              Ready to predict failures before they happen?
+            </div>
+            <h2 className="font-display font-bold text-cc-text mb-4" style={{ fontSize: "clamp(1.8rem, 3vw, 2.8rem)" }}>
+              Try it now — no signup,<br />
+              <span className="text-signal">no data leaves your device.</span>
+            </h2>
+            <p className="text-cc-muted text-base leading-relaxed mb-8">
+              Explore the demo with 5 pre-loaded machines, or upload your own sensor CSV and get an instant 24h failure prediction.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <MagneticButton>
+                <Link
+                  href="/demo"
+                  className="flex items-center gap-2 px-8 py-3.5 rounded-xl bg-signal-gradient text-cc-ink font-display font-bold text-base hover:opacity-90 transition-opacity"
+                  style={{ boxShadow: "0 0 40px rgba(45,212,191,0.25)" }}
+                >
+                  Launch Demo <ArrowRight size={16} />
+                </Link>
+              </MagneticButton>
+              <Link
+                href="/dashboard"
+                className="glass-hover flex items-center gap-2 px-8 py-3.5 rounded-xl text-cc-text font-display font-semibold text-base transition-all"
+              >
+                <Upload size={15} className="text-cc-muted" />
+                Upload my data
+              </Link>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }

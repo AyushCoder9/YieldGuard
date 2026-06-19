@@ -26,6 +26,10 @@ class SyntheticDataGenerator:
     Generates physically plausible PLC sensor streams with:
     - Diurnal seasonal patterns
     - Exponential degradation ramps before failures
+    - Machine-to-machine baseline variation
+    - Hard negatives (recoverable excursions that don't lead to failure)
+    - Randomised degradation shape per event
+    - Label noise (5% positive labels flipped)
     - Random transient spikes (false alarms)
     - Heteroscedastic Gaussian noise
     - Intentional data quality issues for cleaning demos
@@ -53,12 +57,17 @@ class SyntheticDataGenerator:
         n_rows = self.data_cfg["duration_days"] * 24 * 6  # 10-min intervals
         t = np.arange(n_rows)
 
+        # Machine-specific baseline multiplier — adds realistic inter-machine variation
+        baseline_variation_pct = self.data_cfg.get("baseline_variation_pct", 0.15)
+        baseline_mult = 1.0 + self.rng.uniform(-baseline_variation_pct, baseline_variation_pct)
+
         failure_times = self._sample_failure_times(n_rows)
         labels = self._compute_labels(t, failure_times)
 
         records: dict[str, np.ndarray] = {}
         for col in SENSOR_COLS:
-            scfg = self.sensor_cfg[col]
+            scfg = dict(self.sensor_cfg[col])
+            scfg["baseline_mean"] = scfg["baseline_mean"] * baseline_mult
             signal = self._build_signal(t, scfg, failure_times, n_rows)
             records[col] = signal
 
@@ -84,7 +93,7 @@ class SyntheticDataGenerator:
         mu = scfg["baseline_mean"]
         sigma = scfg["baseline_std"]
 
-        # Seasonal: 5–15% of μ, not σ (makes shift pattern visible)
+        # Seasonal: 5–15% of μ
         amp = self.rng.uniform(0.05, 0.15) * mu
         phase = self.rng.uniform(0, 2 * np.pi)
         seasonal = amp * np.sin(2 * np.pi * t / 144 + phase)
@@ -94,6 +103,11 @@ class SyntheticDataGenerator:
         for t_fail in failure_times:
             degradation += self._degradation_ramp(t, t_fail, scfg)
 
+        # Hard negatives: recoverable excursions (NOT near failure windows)
+        hard_negative_rate = self.data_cfg.get("hard_negative_rate", 0.04)
+        if self.rng.random() < hard_negative_rate * n_rows / 200:
+            degradation += self._hard_negative_excursion(t, n_rows, failure_times, scfg)
+
         # Transient spikes (P=0.002, NOT correlated with failure)
         spikes = np.zeros(n_rows)
         spike_mask = self.rng.random(n_rows) < 0.002
@@ -101,7 +115,7 @@ class SyntheticDataGenerator:
         spike_mags = self.rng.uniform(3, 8, size=spike_mask.sum()) * sigma
         spikes[spike_mask] = spike_signs * spike_mags
 
-        # Heteroscedastic noise: variance scales with |seasonal|
+        # Heteroscedastic noise
         noise_scale = sigma * (1 + 0.3 * np.abs(seasonal) / (amp + 1e-8))
         noise = self.rng.normal(0, noise_scale)
 
@@ -113,22 +127,56 @@ class SyntheticDataGenerator:
         t_fail: int,
         scfg: dict,
     ) -> np.ndarray:
-        """Exponential ramp in [DEGRADATION_WINDOW] samples before t_fail."""
+        """Exponential ramp in [degradation_window] samples before t_fail.
+        Alpha and magnitude are randomised per event for shape diversity."""
         window = self.data_cfg["degradation_window_samples"]
-        alpha = scfg["degradation_alpha"]
+        # Randomise shape: alpha ±30%, magnitude ±20%
+        alpha = scfg["degradation_alpha"] * self.rng.uniform(0.7, 1.3)
         direction = scfg["degradation_direction"]
-        magnitude = scfg["degradation_magnitude_factor"] * scfg["baseline_std"]
+        base_magnitude = scfg["degradation_magnitude_factor"] * scfg["baseline_std"]
+        magnitude = base_magnitude * self.rng.uniform(0.8, 1.2)
 
         ramp = np.zeros(len(t))
         for i, ti in enumerate(t):
             ttf = t_fail - ti
-            if ttf <= 0 or ttf > window:  # guard: no explosion after failure
+            if ttf <= 0 or ttf > window:
                 continue
             progress = 1.0 - ttf / window
             ramp[i] = direction * magnitude * (
                 (np.exp(alpha * progress) - 1) / (np.exp(alpha) - 1)
             )
         return ramp
+
+    def _hard_negative_excursion(
+        self,
+        t: np.ndarray,
+        n_rows: int,
+        failure_times: list[int],
+        scfg: dict,
+    ) -> np.ndarray:
+        """Recoverable excursion: half-sine bump NOT near any failure window.
+        Makes the model unable to rely purely on elevated readings → positive."""
+        lookahead = self.data_cfg["failure_lookahead_samples"]
+        window_size = int(self.rng.integers(48, 72))
+        magnitude = scfg["degradation_magnitude_factor"] * scfg["baseline_std"] * self.rng.uniform(0.4, 0.8)
+        direction = scfg["degradation_direction"]
+
+        # Find safe placement (not within any failure window)
+        max_attempts = 50
+        for _ in range(max_attempts):
+            start = int(self.rng.integers(0, n_rows - window_size))
+            end = start + window_size
+            # Reject if overlaps any failure danger zone
+            safe = all(
+                end < (tf - lookahead - 50) or start > tf
+                for tf in failure_times
+            )
+            if safe:
+                excursion = np.zeros(n_rows)
+                for i in range(window_size):
+                    excursion[start + i] = direction * magnitude * np.sin(np.pi * i / window_size)
+                return excursion
+        return np.zeros(n_rows)
 
     # ── Failure sampling ──────────────────────────────────────────────────────
 
@@ -141,8 +189,6 @@ class SyntheticDataGenerator:
         min_spacing = self.data_cfg["min_inter_failure_spacing"]
         lookahead = self.data_cfg["failure_lookahead_samples"]
 
-        # Valid range: must leave room for degradation window before and
-        # 24h lookahead after (so label window fits within the series)
         lo = self.data_cfg["degradation_window_samples"]
         hi = n_rows - lookahead - 1
 
@@ -160,12 +206,21 @@ class SyntheticDataGenerator:
     # ── Labeling ──────────────────────────────────────────────────────────────
 
     def _compute_labels(self, t: np.ndarray, failure_times: list[int]) -> np.ndarray:
-        """1 if any failure within next 24h (144 samples), else 0."""
+        """1 if any failure within next 24h (144 samples), else 0.
+        5% of positive labels are flipped to 0 as label noise."""
         lookahead = self.data_cfg["failure_lookahead_samples"]
         labels = np.zeros(len(t), dtype=np.int8)
         for t_fail in failure_times:
             start = max(0, t_fail - lookahead)
             labels[start:t_fail] = 1
+
+        # 5% label noise on positives only
+        pos_idx = np.where(labels == 1)[0]
+        n_flip = int(len(pos_idx) * 0.05)
+        if n_flip > 0:
+            flip_idx = self.rng.choice(pos_idx, size=n_flip, replace=False)
+            labels[flip_idx] = 0
+
         return labels
 
     # ── Data quality issues ───────────────────────────────────────────────────
@@ -189,7 +244,7 @@ class SyntheticDataGenerator:
 
         # Out-of-range values (~0.5%)
         n_outliers = max(1, int(n * 0.005))
-        for col in SENSOR_COLS[:3]:  # only first 3 channels for variety
+        for col in SENSOR_COLS[:3]:
             idx = self.rng.choice(n, size=n_outliers // 3, replace=False)
             df.loc[idx, col] = -self.rng.uniform(0.1, 2.0, size=len(idx))
 

@@ -1,0 +1,1263 @@
+{
+  "feature_names": [
+    "vibration_mm_s_roll6_mean",
+    "vibration_mm_s_roll6_std",
+    "vibration_mm_s_roll6_range",
+    "vibration_mm_s_roll12_mean",
+    "vibration_mm_s_roll12_std",
+    "vibration_mm_s_roll12_range",
+    "vibration_mm_s_roll36_mean",
+    "vibration_mm_s_roll36_std",
+    "vibration_mm_s_roll36_range",
+    "vibration_mm_s_roll144_mean",
+    "vibration_mm_s_roll144_std",
+    "vibration_mm_s_roll144_range",
+    "vibration_mm_s_ema12",
+    "vibration_mm_s_ema12_dev",
+    "vibration_mm_s_ema72",
+    "vibration_mm_s_ema72_dev",
+    "vibration_mm_s_lag6",
+    "vibration_mm_s_diff6",
+    "vibration_mm_s_pct6",
+    "vibration_mm_s_lag12",
+    "vibration_mm_s_diff12",
+    "vibration_mm_s_pct12",
+    "vibration_mm_s_lag36",
+    "vibration_mm_s_diff36",
+    "vibration_mm_s_pct36",
+    "vibration_mm_s_lag144",
+    "vibration_mm_s_diff144",
+    "vibration_mm_s_pct144",
+    "vibration_mm_s_roc",
+    "vibration_mm_s_roc_smooth",
+    "vibration_mm_s_fft_energy",
+    "vibration_mm_s_fft_entropy",
+    "temperature_c_roll6_mean",
+    "temperature_c_roll6_std",
+    "temperature_c_roll6_range",
+    "temperature_c_roll12_mean",
+    "temperature_c_roll12_std",
+    "temperature_c_roll12_range",
+    "temperature_c_roll36_mean",
+    "temperature_c_roll36_std",
+    "temperature_c_roll36_range",
+    "temperature_c_roll144_mean",
+    "temperature_c_roll144_std",
+    "temperature_c_roll144_range",
+    "temperature_c_ema12",
+    "temperature_c_ema12_dev",
+    "temperature_c_ema72",
+    "temperature_c_ema72_dev",
+    "temperature_c_lag6",
+    "temperature_c_diff6",
+    "temperature_c_pct6",
+    "temperature_c_lag12",
+    "temperature_c_diff12",
+    "temperature_c_pct12",
+    "temperature_c_lag36",
+    "temperature_c_diff36",
+    "temperature_c_pct36",
+    "temperature_c_lag144",
+    "temperature_c_diff144",
+    "temperature_c_pct144",
+    "temperature_c_roc",
+    "temperature_c_roc_smooth",
+    "temperature_c_fft_energy",
+    "temperature_c_fft_entropy",
+    "pressure_bar_roll6_mean",
+    "pressure_bar_roll6_std",
+    "pressure_bar_roll6_range",
+    "pressure_bar_roll12_mean",
+    "pressure_bar_roll12_std",
+    "pressure_bar_roll12_range",
+    "pressure_bar_roll36_mean",
+    "pressure_bar_roll36_std",
+    "pressure_bar_roll36_range",
+    "pressure_bar_roll144_mean",
+    "pressure_bar_roll144_std",
+    "pressure_bar_roll144_range",
+    "pressure_bar_ema12",
+    "pressure_bar_ema12_dev",
+    "pressure_bar_ema72",
+    "pressure_bar_ema72_dev",
+    "pressure_bar_lag6",
+    "pressure_bar_diff6",
+    "pressure_bar_pct6",
+    "pressure_bar_lag12",
+    "pressure_bar_diff12",
+    "pressure_bar_pct12",
+    "pressure_bar_lag36",
+    "pressure_bar_diff36",
+    "pressure_bar_pct36",
+    "pressure_bar_lag144",
+    "pressure_bar_diff144",
+    "pressure_bar_pct144",
+    "pressure_bar_roc",
+    "pressure_bar_roc_smooth",
+    "pressure_bar_fft_energy",
+    "pressure_bar_fft_entropy",
+    "current_a_roll6_mean",
+    "current_a_roll6_std",
+    "current_a_roll6_range",
+    "current_a_roll12_mean",
+    "current_a_roll12_std",
+    "current_a_roll12_range",
+    "current_a_roll36_mean",
+    "current_a_roll36_std",
+    "current_a_roll36_range",
+    "current_a_roll144_mean",
+    "current_a_roll144_std",
+    "current_a_roll144_range",
+    "current_a_ema12",
+    "current_a_ema12_dev",
+    "current_a_ema72",
+    "current_a_ema72_dev",
+    "current_a_lag6",
+    "current_a_diff6",
+    "current_a_pct6",
+    "current_a_lag12",
+    "current_a_diff12",
+    "current_a_pct12",
+    "current_a_lag36",
+    "current_a_diff36",
+    "current_a_pct36",
+    "current_a_lag144",
+    "current_a_diff144",
+    "current_a_pct144",
+    "current_a_roc",
+    "current_a_roc_smooth",
+    "current_a_fft_energy",
+    "current_a_fft_entropy",
+    "rpm_roll6_mean",
+    "rpm_roll6_std",
+    "rpm_roll6_range",
+    "rpm_roll12_mean",
+    "rpm_roll12_std",
+    "rpm_roll12_range",
+    "rpm_roll36_mean",
+    "rpm_roll36_std",
+    "rpm_roll36_range",
+    "rpm_roll144_mean",
+    "rpm_roll144_std",
+    "rpm_roll144_range",
+    "rpm_ema12",
+    "rpm_ema12_dev",
+    "rpm_ema72",
+    "rpm_ema72_dev",
+    "rpm_lag6",
+    "rpm_diff6",
+    "rpm_pct6",
+    "rpm_lag12",
+    "rpm_diff12",
+    "rpm_pct12",
+    "rpm_lag36",
+    "rpm_diff36",
+    "rpm_pct36",
+    "rpm_lag144",
+    "rpm_diff144",
+    "rpm_pct144",
+    "rpm_roc",
+    "rpm_roc_smooth",
+    "rpm_fft_energy",
+    "rpm_fft_entropy",
+    "acoustic_db_roll6_mean",
+    "acoustic_db_roll6_std",
+    "acoustic_db_roll6_range",
+    "acoustic_db_roll12_mean",
+    "acoustic_db_roll12_std",
+    "acoustic_db_roll12_range",
+    "acoustic_db_roll36_mean",
+    "acoustic_db_roll36_std",
+    "acoustic_db_roll36_range",
+    "acoustic_db_roll144_mean",
+    "acoustic_db_roll144_std",
+    "acoustic_db_roll144_range",
+    "acoustic_db_ema12",
+    "acoustic_db_ema12_dev",
+    "acoustic_db_ema72",
+    "acoustic_db_ema72_dev",
+    "acoustic_db_lag6",
+    "acoustic_db_diff6",
+    "acoustic_db_pct6",
+    "acoustic_db_lag12",
+    "acoustic_db_diff12",
+    "acoustic_db_pct12",
+    "acoustic_db_lag36",
+    "acoustic_db_diff36",
+    "acoustic_db_pct36",
+    "acoustic_db_lag144",
+    "acoustic_db_diff144",
+    "acoustic_db_pct144",
+    "acoustic_db_roc",
+    "acoustic_db_roc_smooth",
+    "acoustic_db_fft_energy",
+    "acoustic_db_fft_entropy",
+    "feat_vibration_x_temp",
+    "feat_current_over_rpm",
+    "feat_power_proxy",
+    "feat_pressure_temp_ratio"
+  ],
+  "rolling_windows": [
+    6,
+    12,
+    36,
+    144
+  ],
+  "ewma_spans": [
+    12,
+    72
+  ],
+  "lag_windows": [
+    6,
+    12,
+    36,
+    144
+  ],
+  "fft_window": 144,
+  "sensor_cols": [
+    "vibration_mm_s",
+    "temperature_c",
+    "pressure_bar",
+    "current_a",
+    "rpm",
+    "acoustic_db"
+  ],
+  "features": {
+    "vibration_mm_s_roll6_mean": {
+      "mean": 2.727806748502689,
+      "std": 0.3882097746496879,
+      "importance": 368.38260650634766
+    },
+    "vibration_mm_s_roll6_std": {
+      "mean": 0.913442988083468,
+      "std": 0.31839099784060193,
+      "importance": 129.4808006286621
+    },
+    "vibration_mm_s_roll6_range": {
+      "mean": 2.401731364857786,
+      "std": 0.8486076461161188,
+      "importance": 28.93670082092285
+    },
+    "vibration_mm_s_roll12_mean": {
+      "mean": 2.7259318266299557,
+      "std": 0.26350850697257344,
+      "importance": 146.73810195922852
+    },
+    "vibration_mm_s_roll12_std": {
+      "mean": 0.9430992464255552,
+      "std": 0.2258275269405472,
+      "importance": 3315.1786918640137
+    },
+    "vibration_mm_s_roll12_range": {
+      "mean": 3.0994048822854086,
+      "std": 0.7596392289349739,
+      "importance": 732.485408782959
+    },
+    "vibration_mm_s_roll36_mean": {
+      "mean": 2.732776816274809,
+      "std": 0.15436010554944649,
+      "importance": 31822.489948272705
+    },
+    "vibration_mm_s_roll36_std": {
+      "mean": 0.9541120098223592,
+      "std": 0.1397170941420335,
+      "importance": 108.9596996307373
+    },
+    "vibration_mm_s_roll36_range": {
+      "mean": 4.014697190093448,
+      "std": 0.6925284548100601,
+      "importance": 46.3262996673584
+    },
+    "vibration_mm_s_roll144_mean": {
+      "mean": 2.756915918666976,
+      "std": 0.038586950005067754,
+      "importance": 0.0
+    },
+    "vibration_mm_s_roll144_std": {
+      "mean": 0.9588063210235976,
+      "std": 0.07013703499634562,
+      "importance": 0.0
+    },
+    "vibration_mm_s_roll144_range": {
+      "mean": 4.909029223134477,
+      "std": 0.38985359029444494,
+      "importance": 381299.30847740173
+    },
+    "vibration_mm_s_ema12": {
+      "mean": 2.6988580524806514,
+      "std": 0.3301984961950836,
+      "importance": 1595.982502937317
+    },
+    "vibration_mm_s_ema12_dev": {
+      "mean": 0.02751276836928592,
+      "std": 0.8661797659419068,
+      "importance": 979.1574039459229
+    },
+    "vibration_mm_s_ema72": {
+      "mean": 2.557686892799951,
+      "std": 0.4619043562585278,
+      "importance": 200.8244972229004
+    },
+    "vibration_mm_s_ema72_dev": {
+      "mean": 0.1686839280499863,
+      "std": 1.042730118328872,
+      "importance": 104.76429748535156
+    },
+    "vibration_mm_s_lag6": {
+      "mean": 2.7245001213206765,
+      "std": 0.9663800093587601,
+      "importance": 1410921.1727428436
+    },
+    "vibration_mm_s_diff6": {
+      "mean": 0.003862457774170943,
+      "std": 1.3483967356072164,
+      "importance": 8326.680161476135
+    },
+    "vibration_mm_s_pct6": {
+      "mean": 0.21949172424872754,
+      "std": 0.9694273255454716,
+      "importance": 2042.453459739685
+    },
+    "vibration_mm_s_lag12": {
+      "mean": 2.7313149428732046,
+      "std": 0.9673192879234566,
+      "importance": 749.9046001434326
+    },
+    "vibration_mm_s_diff12": {
+      "mean": -0.0034228034461998235,
+      "std": 1.3379109168289023,
+      "importance": 1300.5090160369873
+    },
+    "vibration_mm_s_pct12": {
+      "mean": 0.21195993087638396,
+      "std": 1.0402141195786387,
+      "importance": 614465.3200416565
+    },
+    "vibration_mm_s_lag36": {
+      "mean": 2.7456192473638508,
+      "std": 0.960175744585643,
+      "importance": 107628.32546329498
+    },
+    "vibration_mm_s_diff36": {
+      "mean": -0.015373403211940124,
+      "std": 1.3347146815840107,
+      "importance": 45929.3119802475
+    },
+    "vibration_mm_s_pct36": {
+      "mean": 0.18744340920815172,
+      "std": 0.8862577638054572,
+      "importance": 8656.88296508789
+    },
+    "vibration_mm_s_lag144": {
+      "mean": 2.745833229523484,
+      "std": 0.9646584868832407,
+      "importance": 10929.380771636963
+    },
+    "vibration_mm_s_diff144": {
+      "mean": -0.047100975215693314,
+      "std": 1.3346432803501878,
+      "importance": 1394136.7798147202
+    },
+    "vibration_mm_s_pct144": {
+      "mean": 0.18977006989009354,
+      "std": 1.013207817213547,
+      "importance": 755.2142925262451
+    },
+    "vibration_mm_s_roc": {
+      "mean": 0.00494163375451173,
+      "std": 1.2823831017723053,
+      "importance": 501413.2564191818
+    },
+    "vibration_mm_s_roc_smooth": {
+      "mean": 0.016196857990258506,
+      "std": 0.3050426548747445,
+      "importance": 4922.860999107361
+    },
+    "vibration_mm_s_fft_energy": {
+      "mean": 140580.9184583937,
+      "std": 51442.71821118528,
+      "importance": 32.123600006103516
+    },
+    "vibration_mm_s_fft_entropy": {
+      "mean": 0.7381204960161774,
+      "std": 0.5878079018559861,
+      "importance": 32.078800201416016
+    },
+    "temperature_c_roll6_mean": {
+      "mean": 73.28793155029618,
+      "std": 6.773565226550187,
+      "importance": 51.20870018005371
+    },
+    "temperature_c_roll6_std": {
+      "mean": 3.477223633473586,
+      "std": 1.192893385019261,
+      "importance": 106.97319984436035
+    },
+    "temperature_c_roll6_range": {
+      "mean": 9.183159433551397,
+      "std": 3.143356021256317,
+      "importance": 247.58699703216553
+    },
+    "temperature_c_roll12_mean": {
+      "mean": 73.27443609198357,
+      "std": 6.647500477638856,
+      "importance": 0.0
+    },
+    "temperature_c_roll12_std": {
+      "mean": 3.697929700646754,
+      "std": 0.8660100659793997,
+      "importance": 107.74890327453613
+    },
+    "temperature_c_roll12_range": {
+      "mean": 12.211362945274765,
+      "std": 2.9132962201407016,
+      "importance": 140.2741003036499
+    },
+    "temperature_c_roll36_mean": {
+      "mean": 73.14136793732828,
+      "std": 6.0529236794473515,
+      "importance": 407.5094976425171
+    },
+    "temperature_c_roll36_std": {
+      "mean": 4.610949145050612,
+      "std": 0.7010525187510127,
+      "importance": 4833.517810821533
+    },
+    "temperature_c_roll36_range": {
+      "mean": 18.442234366325557,
+      "std": 3.0215097393842876,
+      "importance": 3139.5340270996094
+    },
+    "temperature_c_roll144_mean": {
+      "mean": 72.90988890279723,
+      "std": 1.234107373573247,
+      "importance": 1582.9672145843506
+    },
+    "temperature_c_roll144_std": {
+      "mean": 7.480098192952327,
+      "std": 0.5466571307029305,
+      "importance": 24.190099716186523
+    },
+    "temperature_c_roll144_range": {
+      "mean": 31.93002013358401,
+      "std": 1.9445036315187947,
+      "importance": 26.557899475097656
+    },
+    "temperature_c_ema12": {
+      "mean": 73.26531193307109,
+      "std": 6.474848099034691,
+      "importance": 509794.1910190582
+    },
+    "temperature_c_ema12_dev": {
+      "mean": 0.02329302604256351,
+      "std": 3.557118836683245,
+      "importance": 21760.47891998291
+    },
+    "temperature_c_ema72": {
+      "mean": 73.06636791396781,
+      "std": 3.665584149860675,
+      "importance": 22218.667859077454
+    },
+    "temperature_c_ema72_dev": {
+      "mean": 0.22223704514585113,
+      "std": 6.435266401161691,
+      "importance": 3885.3400230407715
+    },
+    "temperature_c_lag6": {
+      "mean": 73.26670987207692,
+      "std": 7.582156579587356,
+      "importance": 41.957000732421875
+    },
+    "temperature_c_diff6": {
+      "mean": -0.009215139548768523,
+      "std": 5.443650195336883,
+      "importance": 141.23509788513184
+    },
+    "temperature_c_pct6": {
+      "mean": 0.0027022711085445275,
+      "std": 0.07534369226670956,
+      "importance": 26.00779914855957
+    },
+    "temperature_c_lag12": {
+      "mean": 73.23919912402918,
+      "std": 7.620521618080437,
+      "importance": 33.10699939727783
+    },
+    "temperature_c_diff12": {
+      "mean": -0.02837638352349574,
+      "std": 6.219033173372325,
+      "importance": 5724.041965484619
+    },
+    "temperature_c_pct12": {
+      "mean": 0.003312988412459866,
+      "std": 0.08612240878163578,
+      "importance": 584.4800024032593
+    },
+    "temperature_c_lag36": {
+      "mean": 72.87186487528098,
+      "std": 7.606157736885777,
+      "importance": 438.74849700927734
+    },
+    "temperature_c_diff36": {
+      "mean": 0.05987284277494709,
+      "std": 10.557285560679908,
+      "importance": 142.77139854431152
+    },
+    "temperature_c_pct36": {
+      "mean": 0.011632333529477604,
+      "std": 0.14877071981263212,
+      "importance": 27.39430046081543
+    },
+    "temperature_c_lag144": {
+      "mean": 73.74971089141641,
+      "std": 7.424887951401979,
+      "importance": 5700.877067565918
+    },
+    "temperature_c_diff144": {
+      "mean": -0.12955093267195772,
+      "std": 4.916381161824692,
+      "importance": 696.1686887741089
+    },
+    "temperature_c_pct144": {
+      "mean": 0.0004034499270519525,
+      "std": 0.06856444423922045,
+      "importance": 1507.9927005767822
+    },
+    "temperature_c_roc": {
+      "mean": 0.001034460328804744,
+      "std": 5.0551905903943934,
+      "importance": 1003.7049970626831
+    },
+    "temperature_c_roc_smooth": {
+      "mean": 0.013302263897572334,
+      "std": 0.9282125300619619,
+      "importance": 1189.3048973083496
+    },
+    "temperature_c_fft_energy": {
+      "mean": 112416612.23474146,
+      "std": 2696421.173142982,
+      "importance": 114919.9670753479
+    },
+    "temperature_c_fft_entropy": {
+      "mean": 0.034810500342677145,
+      "std": 0.012643628805532978,
+      "importance": 9395.936480522156
+    },
+    "pressure_bar_roll6_mean": {
+      "mean": 8.895039643268447,
+      "std": 0.5020802823858058,
+      "importance": 14019.158922195435
+    },
+    "pressure_bar_roll6_std": {
+      "mean": 0.5460606649114018,
+      "std": 0.195050842720083,
+      "importance": 10082.775829315186
+    },
+    "pressure_bar_roll6_range": {
+      "mean": 1.4612882833167236,
+      "std": 0.5471155540531729,
+      "importance": 19281.843949317932
+    },
+    "pressure_bar_roll12_mean": {
+      "mean": 8.888846962134226,
+      "std": 0.4659329830557002,
+      "importance": 6048.070007324219
+    },
+    "pressure_bar_roll12_std": {
+      "mean": 0.5664307100299041,
+      "std": 0.14020035695933464,
+      "importance": 546.9581985473633
+    },
+    "pressure_bar_roll12_range": {
+      "mean": 1.9089058321799774,
+      "std": 0.5193619166217055,
+      "importance": 11596.597285270691
+    },
+    "pressure_bar_roll36_mean": {
+      "mean": 8.869944506915378,
+      "std": 0.3873656047027943,
+      "importance": 212.27370262145996
+    },
+    "pressure_bar_roll36_std": {
+      "mean": 0.6060474990141343,
+      "std": 0.08070790720488154,
+      "importance": 0.0
+    },
+    "pressure_bar_roll36_range": {
+      "mean": 2.664746955053323,
+      "std": 0.4739011706038845,
+      "importance": 40.14540100097656
+    },
+    "pressure_bar_roll144_mean": {
+      "mean": 8.88318624179811,
+      "std": 0.07254845818503507,
+      "importance": 188.76100158691406
+    },
+    "pressure_bar_roll144_std": {
+      "mean": 0.7160475462524866,
+      "std": 0.04174946952296515,
+      "importance": 0.0
+    },
+    "pressure_bar_roll144_range": {
+      "mean": 4.000181127436519,
+      "std": 0.5748951354091356,
+      "importance": 180.87120246887207
+    },
+    "pressure_bar_ema12": {
+      "mean": 8.884738581304275,
+      "std": 0.4572534773315779,
+      "importance": 223.55860137939453
+    },
+    "pressure_bar_ema12_dev": {
+      "mean": 0.014266787535547908,
+      "std": 0.5201388844998258,
+      "importance": 108.13500213623047
+    },
+    "pressure_bar_ema72": {
+      "mean": 8.835812286835806,
+      "std": 0.24637866755029117,
+      "importance": 290.1907043457031
+    },
+    "pressure_bar_ema72_dev": {
+      "mean": 0.06319308200401787,
+      "std": 0.6759306663358616,
+      "importance": 250.56199264526367
+    },
+    "pressure_bar_lag6": {
+      "mean": 8.888974090600943,
+      "std": 0.7266861678151872,
+      "importance": 0.0
+    },
+    "pressure_bar_diff6": {
+      "mean": 0.019259628015650915,
+      "std": 0.8273361485298751,
+      "importance": 17513.587544441223
+    },
+    "pressure_bar_pct6": {
+      "mean": 0.006529368212607708,
+      "std": 0.09468820201807102,
+      "importance": 8820.40482711792
+    },
+    "pressure_bar_lag12": {
+      "mean": 8.876014514202847,
+      "std": 0.7197590224682411,
+      "importance": 950.905195236206
+    },
+    "pressure_bar_diff12": {
+      "mean": 0.03775204560261659,
+      "std": 0.8221981568521501,
+      "importance": 58.403900146484375
+    },
+    "pressure_bar_pct12": {
+      "mean": 0.008541654935223022,
+      "std": 0.09403530273891612,
+      "importance": 72901.96479415894
+    },
+    "pressure_bar_lag36": {
+      "mean": 8.841977001875382,
+      "std": 0.7091408094832921,
+      "importance": 0.0
+    },
+    "pressure_bar_diff36": {
+      "mean": 0.07194653112640778,
+      "std": 1.0444750878807074,
+      "importance": 17160.980429649353
+    },
+    "pressure_bar_pct36": {
+      "mean": 0.014953432459233999,
+      "std": 0.12029387097675064,
+      "importance": 7207.433330535889
+    },
+    "pressure_bar_lag144": {
+      "mean": 8.869222705602622,
+      "std": 0.717801199384363,
+      "importance": 0.0
+    },
+    "pressure_bar_diff144": {
+      "mean": 0.05819635568074891,
+      "std": 0.824429024640617,
+      "importance": 23.07900047302246
+    },
+    "pressure_bar_pct144": {
+      "mean": 0.011034310648835933,
+      "std": 0.09438321950598615,
+      "importance": 38.911489486694336
+    },
+    "pressure_bar_roc": {
+      "mean": 0.0012309383771467682,
+      "std": 0.7959956942891839,
+      "importance": 0.0
+    },
+    "pressure_bar_roc_smooth": {
+      "mean": 0.0017547097884477204,
+      "std": 0.1387099879987998,
+      "importance": 30865.787966489792
+    },
+    "pressure_bar_fft_energy": {
+      "mean": 1628731.4657676832,
+      "std": 57077.85339654615,
+      "importance": 295.14630126953125
+    },
+    "pressure_bar_fft_entropy": {
+      "mean": 0.02825930914724564,
+      "std": 0.008208282133171488,
+      "importance": 79.55630111694336
+    },
+    "current_a_roll6_mean": {
+      "mean": 13.469606561710005,
+      "std": 0.9812806939009294,
+      "importance": 48.72949981689453
+    },
+    "current_a_roll6_std": {
+      "mean": 1.7669920641570573,
+      "std": 0.7321139667179734,
+      "importance": 34.5015983581543
+    },
+    "current_a_roll6_range": {
+      "mean": 4.660619504034751,
+      "std": 1.9940518960401865,
+      "importance": 9013.96348953247
+    },
+    "current_a_roll12_mean": {
+      "mean": 13.468578169968714,
+      "std": 0.8208929408371889,
+      "importance": 1019.1061115264893
+    },
+    "current_a_roll12_std": {
+      "mean": 1.820510732240455,
+      "std": 0.5478374190018923,
+      "importance": 1818.6821737289429
+    },
+    "current_a_roll12_range": {
+      "mean": 6.042518467424193,
+      "std": 2.0489500947594412,
+      "importance": 1660.8009052276611
+    },
+    "current_a_roll36_mean": {
+      "mean": 13.453622321240688,
+      "std": 0.6355227796085515,
+      "importance": 1380.728754043579
+    },
+    "current_a_roll36_std": {
+      "mean": 1.8923319155038703,
+      "std": 0.29826610120730024,
+      "importance": 729646.3130178452
+    },
+    "current_a_roll36_range": {
+      "mean": 8.435991597851068,
+      "std": 1.83218002462739,
+      "importance": 17195.2525806427
+    },
+    "current_a_roll144_mean": {
+      "mean": 13.417957197506016,
+      "std": 0.1872424320322488,
+      "importance": 34332.96349525452
+    },
+    "current_a_roll144_std": {
+      "mean": 1.9908471749371879,
+      "std": 0.08908482066567996,
+      "importance": 5597.025572776794
+    },
+    "current_a_roll144_range": {
+      "mean": 11.350598652157833,
+      "std": 1.421502014943033,
+      "importance": 14552.252546310425
+    },
+    "current_a_ema12": {
+      "mean": 13.429719081284947,
+      "std": 0.8290536207490607,
+      "importance": 33455.29030370712
+    },
+    "current_a_ema12_dev": {
+      "mean": 0.0381570857331008,
+      "std": 1.7007691790218218,
+      "importance": 66.70310020446777
+    },
+    "current_a_ema72": {
+      "mean": 13.213415236098728,
+      "std": 0.5865670644871653,
+      "importance": 445785.57147598267
+    },
+    "current_a_ema72_dev": {
+      "mean": 0.2544609309193207,
+      "std": 2.0341292151381554,
+      "importance": 207.84340286254883
+    },
+    "current_a_lag6": {
+      "mean": 13.460126269081934,
+      "std": 2.0023904979427405,
+      "importance": 0.0
+    },
+    "current_a_diff6": {
+      "mean": 0.0034222785603422656,
+      "std": 2.583748566465183,
+      "importance": 53.31480026245117
+    },
+    "current_a_pct6": {
+      "mean": 0.021527024287057165,
+      "std": 0.21402913852335642,
+      "importance": 68.9148998260498
+    },
+    "current_a_lag12": {
+      "mean": 13.462112953443501,
+      "std": 1.999470538429729,
+      "importance": 22.962299346923828
+    },
+    "current_a_diff12": {
+      "mean": -0.007719338179563873,
+      "std": 2.7339364490152214,
+      "importance": 69.73479843139648
+    },
+    "current_a_pct12": {
+      "mean": 0.02278894289488732,
+      "std": 0.22590624880295612,
+      "importance": 36.13429927825928
+    },
+    "current_a_lag36": {
+      "mean": 13.440090985012217,
+      "std": 1.9874337235119184,
+      "importance": 0.0
+    },
+    "current_a_diff36": {
+      "mean": -0.04371054909933148,
+      "std": 2.804661671346251,
+      "importance": 130.94203758239746
+    },
+    "current_a_pct36": {
+      "mean": 0.021599249538732372,
+      "std": 0.232730409255865,
+      "importance": 42.347198486328125
+    },
+    "current_a_lag144": {
+      "mean": 13.524473476365635,
+      "std": 1.9655339075204026,
+      "importance": 97.69260215759277
+    },
+    "current_a_diff144": {
+      "mean": -0.078059321199907,
+      "std": 2.633292274002696,
+      "importance": 6100.3976764678955
+    },
+    "current_a_pct144": {
+      "mean": 0.016481874615798506,
+      "std": 0.22753710580481745,
+      "importance": 6279.349275112152
+    },
+    "current_a_roc": {
+      "mean": 0.007887230143529763,
+      "std": 2.662280121125876,
+      "importance": 575.5817966461182
+    },
+    "current_a_roc_smooth": {
+      "mean": 0.019606547201857904,
+      "std": 0.4797165955131134,
+      "importance": 65.34049987792969
+    },
+    "current_a_fft_energy": {
+      "mean": 3576649.4558610306,
+      "std": 425906.21871942707,
+      "importance": 991178.6472406387
+    },
+    "current_a_fft_entropy": {
+      "mean": 0.10446435290456782,
+      "std": 0.01780386539659588,
+      "importance": 526.2226047515869
+    },
+    "rpm_roll6_mean": {
+      "mean": 1615.4235131381615,
+      "std": 163.50967964467827,
+      "importance": 13087.699478149414
+    },
+    "rpm_roll6_std": {
+      "mean": 17.25698706931203,
+      "std": 6.201740198710785,
+      "importance": 14697.943115234375
+    },
+    "rpm_roll6_range": {
+      "mean": 45.30704655593498,
+      "std": 16.79074317664207,
+      "importance": 22.55190086364746
+    },
+    "rpm_roll12_mean": {
+      "mean": 1615.479683455015,
+      "std": 162.6180943682941,
+      "importance": 87.46970176696777
+    },
+    "rpm_roll12_std": {
+      "mean": 26.732512527708934,
+      "std": 9.294067665908834,
+      "importance": 20.815799713134766
+    },
+    "rpm_roll12_range": {
+      "mean": 84.09000945227722,
+      "std": 29.035635538091718,
+      "importance": 57.60799980163574
+    },
+    "rpm_roll36_mean": {
+      "mean": 1617.5961914114123,
+      "std": 150.46555341289684,
+      "importance": 26006.994176864624
+    },
+    "rpm_roll36_std": {
+      "mean": 66.66928009466831,
+      "std": 25.793335635981613,
+      "importance": 220.32990264892578
+    },
+    "rpm_roll36_range": {
+      "mean": 226.5153434693068,
+      "std": 77.76156586712217,
+      "importance": 245.21280097961426
+    },
+    "rpm_roll144_mean": {
+      "mean": 1628.0553222707372,
+      "std": 26.6899727441166,
+      "importance": 0.0
+    },
+    "rpm_roll144_std": {
+      "mean": 162.77423556761605,
+      "std": 12.615702774430188,
+      "importance": 87.40310096740723
+    },
+    "rpm_roll144_range": {
+      "mean": 499.9337836524966,
+      "std": 30.197248653209677,
+      "importance": 89375.49290657043
+    },
+    "rpm_ema12": {
+      "mean": 1615.3747123464298,
+      "std": 158.50394631140614,
+      "importance": 1748.6202907562256
+    },
+    "rpm_ema12_dev": {
+      "mean": 0.24617195989460197,
+      "std": 39.00161333010414,
+      "importance": 3657.2461833953857
+    },
+    "rpm_ema72": {
+      "mean": 1618.3945280190803,
+      "std": 92.5093545397134,
+      "importance": 345.7795991897583
+    },
+    "rpm_ema72_dev": {
+      "mean": -2.7736437127562694,
+      "std": 132.34397177155768,
+      "importance": 2135.8761024475098
+    },
+    "rpm_lag6": {
+      "mean": 1615.4783570204409,
+      "std": 165.0078514264463,
+      "importance": 299173.26046323776
+    },
+    "rpm_diff6": {
+      "mean": 0.8827952185248238,
+      "std": 46.20647835320449,
+      "importance": 14447.578769683838
+    },
+    "rpm_pct6": {
+      "mean": 0.0009669445702536204,
+      "std": 0.028734483679137734,
+      "importance": 22836.44392967224
+    },
+    "rpm_lag12": {
+      "mean": 1616.1403425954784,
+      "std": 165.8964716013978,
+      "importance": 16834.37929534912
+    },
+    "rpm_diff12": {
+      "mean": 1.600645730268292,
+      "std": 85.92525382370076,
+      "importance": 13758.503860235214
+    },
+    "rpm_pct12": {
+      "mean": 0.002442596335246613,
+      "std": 0.05337532822227802,
+      "importance": 22744.332900047302
+    },
+    "rpm_lag36": {
+      "mean": 1624.511750697638,
+      "std": 165.60104352233031,
+      "importance": 2604.24760055542
+    },
+    "rpm_diff36": {
+      "mean": 3.2751638030484815,
+      "std": 227.77693179454636,
+      "importance": 132559.50784492493
+    },
+    "rpm_pct36": {
+      "mean": 0.01203051453608692,
+      "std": 0.1412698113611269,
+      "importance": 259.4252324104309
+    },
+    "rpm_lag144": {
+      "mean": 1606.8971979869561,
+      "std": 162.5980572993917,
+      "importance": 52.19169998168945
+    },
+    "rpm_diff144": {
+      "mean": 0.5679875690483349,
+      "std": 18.60007261987046,
+      "importance": 128.8134002685547
+    },
+    "rpm_pct144": {
+      "mean": 0.0003817059712911561,
+      "std": 0.011869986758610831,
+      "importance": 44.54209899902344
+    },
+    "rpm_roc": {
+      "mean": 0.1578379123101698,
+      "std": 19.018575466255154,
+      "importance": 0.0
+    },
+    "rpm_roc_smooth": {
+      "mean": 0.05774722308861457,
+      "std": 7.731244391057128,
+      "importance": 55.75829887390137
+    },
+    "rpm_fft_energy": {
+      "mean": 55028370713.71523,
+      "std": 2713574304.6201715,
+      "importance": 0.0
+    },
+    "rpm_fft_entropy": {
+      "mean": 0.027159229185953027,
+      "std": 0.009872452810845844,
+      "importance": 16.98870086669922
+    },
+    "acoustic_db_roll6_mean": {
+      "mean": 79.01081299157262,
+      "std": 5.706395768730673,
+      "importance": 133.15490341186523
+    },
+    "acoustic_db_roll6_std": {
+      "mean": 4.702863546332057,
+      "std": 1.853338658820459,
+      "importance": 23.45359992980957
+    },
+    "acoustic_db_roll6_range": {
+      "mean": 12.360505889846857,
+      "std": 5.014855525635984,
+      "importance": 895.544111251831
+    },
+    "acoustic_db_roll12_mean": {
+      "mean": 79.03530320226581,
+      "std": 5.454844315724546,
+      "importance": 7054.009509086609
+    },
+    "acoustic_db_roll12_std": {
+      "mean": 4.947661663731212,
+      "std": 1.343186649330141,
+      "importance": 6404.147436141968
+    },
+    "acoustic_db_roll12_range": {
+      "mean": 16.463607920827467,
+      "std": 4.9697194533738625,
+      "importance": 466.7882966995239
+    },
+    "acoustic_db_roll36_mean": {
+      "mean": 79.21066130597966,
+      "std": 4.729900262991928,
+      "importance": 57.36069965362549
+    },
+    "acoustic_db_roll36_std": {
+      "mean": 5.5242481896125755,
+      "std": 0.8181521145896615,
+      "importance": 127699.92511081696
+    },
+    "acoustic_db_roll36_range": {
+      "mean": 23.42703377396795,
+      "std": 4.137856884395307,
+      "importance": 2155.2113037109375
+    },
+    "acoustic_db_roll144_mean": {
+      "mean": 79.26722445038777,
+      "std": 0.8173769903672592,
+      "importance": 20385.888231277466
+    },
+    "acoustic_db_roll144_std": {
+      "mean": 7.178953517322836,
+      "std": 0.4400695515454295,
+      "importance": 3248.11665725708
+    },
+    "acoustic_db_roll144_range": {
+      "mean": 35.461432620579124,
+      "std": 1.955231716322066,
+      "importance": 0.0
+    },
+    "acoustic_db_ema12": {
+      "mean": 79.23426032829929,
+      "std": 5.499229364667578,
+      "importance": 0.0
+    },
+    "acoustic_db_ema12_dev": {
+      "mean": -0.2479660953591321,
+      "std": 4.713573604808117,
+      "importance": 0.0
+    },
+    "acoustic_db_ema72": {
+      "mean": 80.48592278855747,
+      "std": 3.8630377273492806,
+      "importance": 0.0
+    },
+    "acoustic_db_ema72_dev": {
+      "mean": -1.4996285556173239,
+      "std": 7.222829611592563,
+      "importance": 7711.338638305664
+    },
+    "acoustic_db_lag6": {
+      "mean": 79.03139071533816,
+      "std": 7.354792866570808,
+      "importance": 181.51740646362305
+    },
+    "acoustic_db_diff6": {
+      "mean": -0.12413097023762051,
+      "std": 7.304510071535558,
+      "importance": 33.50830078125
+    },
+    "acoustic_db_pct6": {
+      "mean": 0.002822672526911258,
+      "std": 0.09397017417808697,
+      "importance": 932.8278293609619
+    },
+    "acoustic_db_lag12": {
+      "mean": 79.14275099206017,
+      "std": 7.319447846878058,
+      "importance": 0.0
+    },
+    "acoustic_db_diff12": {
+      "mean": -0.21821640153498226,
+      "std": 7.790374826150113,
+      "importance": 18591.506298065186
+    },
+    "acoustic_db_pct12": {
+      "mean": 0.0021908637310706735,
+      "std": 0.10124145390663591,
+      "importance": 778.5134963989258
+    },
+    "acoustic_db_lag36": {
+      "mean": 79.55113512774228,
+      "std": 7.179458238712424,
+      "importance": 477.3437957763672
+    },
+    "acoustic_db_diff36": {
+      "mean": -0.48612133214893327,
+      "std": 10.334885657677704,
+      "importance": 906.618595123291
+    },
+    "acoustic_db_pct36": {
+      "mean": 0.0022247369698050784,
+      "std": 0.13291575014849466,
+      "importance": 1048.5255374908447
+    },
+    "acoustic_db_lag144": {
+      "mean": 78.82388272609423,
+      "std": 7.206652122541889,
+      "importance": 87614.87369632721
+    },
+    "acoustic_db_diff144": {
+      "mean": -0.16679498039228768,
+      "std": 7.214499488066614,
+      "importance": 17032.080443382263
+    },
+    "acoustic_db_pct144": {
+      "mean": 0.001961400043405098,
+      "std": 0.09391398603996445,
+      "importance": 20334.88481903076
+    },
+    "acoustic_db_roc": {
+      "mean": -0.051175639454285375,
+      "std": 7.0117798682839405,
+      "importance": 8487.422523021698
+    },
+    "acoustic_db_roc_smooth": {
+      "mean": -0.08833604032309075,
+      "std": 1.552425750851043,
+      "importance": 13124.462909698486
+    },
+    "acoustic_db_fft_energy": {
+      "mean": 140788167.63709262,
+      "std": 14856941.524296861,
+      "importance": 11119.742418289185
+    },
+    "acoustic_db_fft_entropy": {
+      "mean": 0.038852620511587985,
+      "std": 0.009119345232838567,
+      "importance": 906.625
+    },
+    "feat_vibration_x_temp": {
+      "mean": 199.14422605649528,
+      "std": 70.9745886067131,
+      "importance": 24295.123560905457
+    },
+    "feat_current_over_rpm": {
+      "mean": 0.008459548579314788,
+      "std": 0.001699471302529416,
+      "importance": 1103.3191165924072
+    },
+    "feat_power_proxy": {
+      "mean": 36.77514368583619,
+      "std": 14.30693090689106,
+      "importance": 426.1962032318115
+    },
+    "feat_pressure_temp_ratio": {
+      "mean": 0.12247709615691287,
+      "std": 0.01414166538128058,
+      "importance": 43.148369789123535
+    }
+  },
+  "sensor_baselines": {
+    "vibration_mm_s": {
+      "mean": 2.5,
+      "std": 0.8,
+      "bounds": [
+        0.0,
+        50.0
+      ],
+      "degradation_direction": 1
+    },
+    "temperature_c": {
+      "mean": 65.0,
+      "std": 3.0,
+      "bounds": [
+        0.0,
+        200.0
+      ],
+      "degradation_direction": 1
+    },
+    "pressure_bar": {
+      "mean": 8.0,
+      "std": 0.5,
+      "bounds": [
+        0.0,
+        30.0
+      ],
+      "degradation_direction": -1
+    },
+    "current_a": {
+      "mean": 12.0,
+      "std": 1.5,
+      "bounds": [
+        0.0,
+        100.0
+      ],
+      "degradation_direction": 1
+    },
+    "rpm": {
+      "mean": 1475.0,
+      "std": 10.0,
+      "bounds": [
+        0.0,
+        3000.0
+      ],
+      "degradation_direction": -1
+    },
+    "acoustic_db": {
+      "mean": 72.0,
+      "std": 4.0,
+      "bounds": [
+        0.0,
+        140.0
+      ],
+      "degradation_direction": 1
+    }
+  }
+}

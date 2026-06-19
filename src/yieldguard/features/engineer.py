@@ -205,6 +205,42 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
     def get_feature_names_out(self) -> list[str]:
         return self.feature_names_out_
 
+    def get_portable_feature_names(self) -> list[str]:
+        """Return features that are safely implementable in TypeScript.
+
+        Excludes skew/kurt (hard to match exactly cross-platform) and fft_dom_hz
+        (low importance, tricky to port). Everything else maps 1:1 to the TS engine.
+        """
+        portable: list[str] = []
+        for name in self.feature_names_out_:
+            # Rolling: mean/std/range only (skip skew/kurt)
+            if any(f"_roll{w}_" in name for w in self.rolling_windows):
+                if any(name.endswith(s) for s in ("_mean", "_std", "_range")):
+                    portable.append(name)
+                continue
+            # EWMA and deviation
+            if any(f"_ema{s}" in name for s in self.ewma_spans):
+                portable.append(name)
+                continue
+            # Lag, diff, pct
+            if any(f"_lag{lg}" in name or f"_diff{lg}" in name or f"_pct{lg}" in name
+                   for lg in self.lag_windows):
+                portable.append(name)
+                continue
+            # Rate of change
+            if name.endswith("_roc") or name.endswith("_roc_smooth"):
+                portable.append(name)
+                continue
+            # FFT — energy and entropy only (skip dom_hz)
+            if name.endswith("_fft_energy") or name.endswith("_fft_entropy"):
+                portable.append(name)
+                continue
+            # Cross-channel features
+            if name.startswith("feat_"):
+                portable.append(name)
+                continue
+        return portable
+
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 

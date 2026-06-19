@@ -11,6 +11,7 @@ from typing import Any
 import numpy as np
 import optuna
 import pandas as pd
+from sklearn.isotonic import IsotonicRegression
 from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
@@ -128,6 +129,23 @@ class FailurePredictionTrainer:
                    key=lambda x: x[1], reverse=True)
         )
 
+        # ── Isotonic calibration on held-out last 20% (by time) ──────────────
+        calibration_x: list[float] = []
+        calibration_y: list[float] = []
+        try:
+            n = len(X)
+            holdout_start = int(n * 0.80)
+            X_cal = X.iloc[holdout_start:].values
+            y_cal = y.iloc[holdout_start:].values
+            raw_probs = final_model.predict_proba(X_cal)[:, 1]
+            iso = IsotonicRegression(out_of_bounds="clip")
+            iso.fit(raw_probs, y_cal)
+            calibration_x = iso.X_thresholds_.tolist()
+            calibration_y = iso.y_thresholds_.tolist()
+            logger.info("Calibration fitted on %d held-out samples (%d knots)", len(y_cal), len(calibration_x))
+        except Exception as e:
+            logger.warning("Calibration failed (non-critical): %s", e)
+
         # ── Save artifact ─────────────────────────────────────────────────────
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         out_path = Path(self.cfg["paths"]["models"]) / f"{model_name}_{ts}.joblib"
@@ -140,7 +158,7 @@ class FailurePredictionTrainer:
              "threshold": optimal_threshold, "best_iteration": best_iteration},
         )
 
-        return TrainingResult(
+        result = TrainingResult(
             model_name=model_name,
             model=final_model,
             fold_results=fold_results,
@@ -153,6 +171,9 @@ class FailurePredictionTrainer:
             feature_importances=importances,
             artifact_path=str(out_path),
         )
+        result._calibration_x = calibration_x
+        result._calibration_y = calibration_y
+        return result
 
     # ── CV ────────────────────────────────────────────────────────────────────
 
@@ -313,6 +334,8 @@ def main() -> None:
             "best_iteration": r.best_iteration,
             "top_features": list(r.feature_importances.keys())[:20],
             "artifact": r.artifact_path,
+            "calibration_x": getattr(r, "_calibration_x", []),
+            "calibration_y": getattr(r, "_calibration_y", []),
         }
 
     summary_path = Path(cfg["paths"]["models"]) / "training_summary.json"
