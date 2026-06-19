@@ -145,8 +145,41 @@ def main() -> None:
     cal_x = np.array(lgb_entry.get("calibration_x", []))
     cal_y = np.array(lgb_entry.get("calibration_y", []))
 
+    # ── Discover full feature column order ────────────────────────────────────
+    # Generate a minimal dataset to get the exact column order the model was
+    # trained with. This is needed to replace "Column_N" placeholder names.
+    print("Discovering full feature column order from FeatureEngineer...")
+    import copy as _copy
+    from yieldguard.data.preprocessor import DataPreprocessor
+    _mini_cfg = _copy.deepcopy(cfg)
+    _mini_cfg["data"]["n_machines"] = 2
+    _mini_cfg["data"]["duration_days"] = 5
+    _mini_cfg["data"]["failures_per_machine_min"] = 1
+    _mini_cfg["data"]["failures_per_machine_max"] = 1
+    _mini_df = SyntheticDataGenerator(_mini_cfg).generate()
+    _mini_proc = DataPreprocessor(_mini_cfg)
+    _mini_processed = _mini_proc.fit_transform(_mini_df)
+    _mini_feat = fe.transform(_mini_processed)
+    _all_feat_cols = [c for c in _mini_feat.columns if c not in _PASSTHROUGH]
+    print(f"  Found {len(_all_feat_cols)} feature columns")
+
     # ── Export model JSON ─────────────────────────────────────────────────────
     model_dict = lgb_model.booster_.dump_model()
+
+    # Replace "Column_N" placeholder names with real feature names so the
+    # TypeScript engine can look up features by name correctly.
+    if (model_dict.get("feature_names") and
+            str(model_dict["feature_names"][0]).startswith("Column_")):
+        n_model = len(model_dict["feature_names"])
+        if len(_all_feat_cols) != n_model:
+            print(f"  WARNING: model has {n_model} features, engineer produced "
+                  f"{len(_all_feat_cols)} — will use positional mapping up to min")
+        model_dict["feature_names"] = [
+            _all_feat_cols[i] if i < len(_all_feat_cols) else f"Column_{i}"
+            for i in range(n_model)
+        ]
+        print(f"  Replaced Column_N names with real feature names")
+
     model_dict["threshold"] = lgb_entry.get("threshold", 0.5)
     model_dict["calibration_x"] = lgb_entry.get("calibration_x", [])
     model_dict["calibration_y"] = lgb_entry.get("calibration_y", [])
@@ -157,23 +190,17 @@ def main() -> None:
     print(f"Exported model.json ({len(model_dict.get('tree_info', []))} trees)")
 
     # ── Export feature spec ───────────────────────────────────────────────────
-    portable_names = fe.get_portable_feature_names()
+    # Use the full 256-column list (matches what model.json now uses)
+    all_feat_names = _all_feat_cols
     booster = lgb_model.booster_
-    # Model was fitted on .values → feature names are Column_0, Column_1, ...
-    # Map by position to actual feature names
-    lgb_feat_names = booster.feature_name()
     importance_raw = booster.feature_importance(importance_type="gain").tolist()
-    if lgb_feat_names and lgb_feat_names[0].startswith("Column_"):
-        # Position-based mapping: Column_i → portable_names[i]
-        importance_dict = {
-            portable_names[i]: float(importance_raw[i])
-            for i in range(min(len(portable_names), len(importance_raw)))
-        }
-    else:
-        importance_dict = dict(zip(lgb_feat_names, importance_raw))
+    importance_dict = {
+        all_feat_names[i]: float(importance_raw[i])
+        for i in range(min(len(all_feat_names), len(importance_raw)))
+    }
 
     feature_spec = {
-        "feature_names": portable_names,
+        "feature_names": all_feat_names,
         "rolling_windows": fe.rolling_windows,
         "ewma_spans": fe.ewma_spans,
         "lag_windows": fe.lag_windows,
@@ -188,7 +215,7 @@ def main() -> None:
                 "std": float(max(fe.reference_stats_.get(name, {}).get("std", 1.0), 1e-6)),
                 "importance": float(importance_dict.get(name, 0.0)),
             }
-            for name in portable_names
+            for name in all_feat_names
         },
         "sensor_baselines": {
             col: {
@@ -202,7 +229,7 @@ def main() -> None:
     }
 
     (out_dir / "feature_spec.json").write_text(json.dumps(feature_spec, indent=2))
-    print(f"Exported feature_spec.json ({len(portable_names)} portable features)")
+    print(f"Exported feature_spec.json ({len(all_feat_names)} features)")
 
     # ── Generate demo scenarios ───────────────────────────────────────────────
     gen = SyntheticDataGenerator(cfg)
@@ -287,7 +314,7 @@ def main() -> None:
     print(f"  LightGBM PR-AUC:  {lgb_entry.get('pr_auc', '?'):.4f}")
     print(f"  LightGBM ROC-AUC: {lgb_entry.get('roc_auc', '?'):.4f}")
     print(f"  Threshold:        {lgb_entry.get('threshold', '?'):.3f}")
-    print(f"  Portable features: {len(portable_names)}")
+    print(f"  Total features: {len(all_feat_names)}")
     print(f"  Calibration knots: {len(lgb_entry.get('calibration_x', []))}")
 
 

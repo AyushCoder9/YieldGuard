@@ -76,39 +76,61 @@ function ewmaFull(arr: number[], span: number): number[] {
   return result;
 }
 
-/* ── FFT via DFT (direct, only needs amplitude spectrum) ──────────────────── */
-function fftEnergy(segment: number[]): number {
-  const n = segment.length;
-  if (n < 2) return 0;
-  let energy = 0;
-  for (let k = 1; k < Math.floor(n / 2) + 1; k++) {
-    let re = 0, im = 0;
-    for (let t = 0; t < n; t++) {
-      const angle = (2 * Math.PI * k * t) / n;
-      re += segment[t] * Math.cos(angle);
-      im -= segment[t] * Math.sin(angle);
-    }
-    energy += re * re + im * im;
-  }
-  return energy;
+/* ── Rolling skew (Fisher-Pearson adjusted, matches pandas rolling.skew) ──── */
+function rollingSkew(arr: number[], end: number, w: number): number {
+  const start = Math.max(0, end - w + 1);
+  const slice = arr.slice(start, end + 1);
+  const n = slice.length;
+  if (n < 3) return 0;
+  const mean = slice.reduce((a, b) => a + b, 0) / n;
+  const s2 = slice.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1);
+  const s = Math.sqrt(s2);
+  if (s < 1e-10) return 0;
+  const m3 = slice.reduce((a, b) => a + ((b - mean) / s) ** 3, 0);
+  return (n / ((n - 1) * (n - 2))) * m3;
 }
 
-function fftEntropy(segment: number[]): number {
+/* ── Rolling excess kurtosis (unbiased, matches pandas rolling.kurt) ─────── */
+function rollingKurt(arr: number[], end: number, w: number): number {
+  const start = Math.max(0, end - w + 1);
+  const slice = arr.slice(start, end + 1);
+  const n = slice.length;
+  if (n < 4) return 0;
+  const mean = slice.reduce((a, b) => a + b, 0) / n;
+  const s2 = slice.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1);
+  if (s2 < 1e-10) return 0;
+  const m4 = slice.reduce((a, b) => a + (b - mean) ** 4, 0);
+  return (n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3)) * (m4 / (s2 * s2)) -
+         3 * (n - 1) ** 2 / ((n - 2) * (n - 3));
+}
+
+/* ── FFT via DFT — single pass returns energy, dominant bin, entropy ─────── */
+function computeFFT(segment: number[]): { energy: number; domHz: number; entropy: number } {
   const n = segment.length;
-  if (n < 2) return 0;
-  const powers: number[] = [];
-  for (let k = 0; k < Math.floor(n / 2) + 1; k++) {
+  if (n < 2) return { energy: 0, domHz: 1, entropy: 0 };
+  const half = Math.floor(n / 2) + 1;
+  const powers = new Float64Array(half);
+  for (let k = 0; k < half; k++) {
     let re = 0, im = 0;
     for (let t = 0; t < n; t++) {
       const angle = (2 * Math.PI * k * t) / n;
       re += segment[t] * Math.cos(angle);
       im -= segment[t] * Math.sin(angle);
     }
-    powers.push(re * re + im * im);
+    powers[k] = re * re + im * im;
+  }
+  let energy = 0, domHz = 1, maxPow = 0;
+  for (let k = 1; k < half; k++) {
+    energy += powers[k];
+    if (powers[k] > maxPow) { maxPow = powers[k]; domHz = k; }
   }
   const total = powers.reduce((a, b) => a + b, 0) + 1e-10;
-  const probs = powers.map(p => p / total);
-  return -probs.reduce((acc, p) => acc + (p > 0 ? p * Math.log(p) : 0), 0);
+  let entropy = 0;
+  for (let k = 0; k < half; k++) {
+    const p = powers[k] / total;
+    if (p > 0) entropy -= p * Math.log(p);
+  }
+  return { energy, domHz, entropy };
 }
 
 /* ── Clip pct_change to [-10, 10] as in Python ──────────────────────────── */
@@ -142,11 +164,16 @@ export function computeFeatures(readings: SensorReading[]): FeatureRow {
     const arr = padded.map(r => r[col] ?? 0);
     const val = arr[i];
 
-    // Rolling mean, std, range
+    // Raw sensor value (Column_0..5 in model)
+    features[col] = val;
+
+    // Rolling mean, std, range, skew, kurt
     for (const w of ROLLING_WINDOWS) {
       features[`${col}_roll${w}_mean`]  = rollingMean(arr, i, w);
       features[`${col}_roll${w}_std`]   = rollingStd(arr, i, w);
       features[`${col}_roll${w}_range`] = rollingRange(arr, i, w);
+      features[`${col}_roll${w}_skew`]  = rollingSkew(arr, i, w);
+      features[`${col}_roll${w}_kurt`]  = rollingKurt(arr, i, w);
     }
 
     // EWMA + deviation
@@ -178,13 +205,15 @@ export function computeFeatures(readings: SensorReading[]): FeatureRow {
     ) / 6;
     features[`${col}_roc_smooth`] = rocSmooth;
 
-    // FFT (subsampled — compute on the last FFT_WINDOW samples)
+    // FFT — single DFT pass for energy, dominant bin, entropy
     const fftSeg = arr.slice(Math.max(0, i - FFT_WINDOW + 1), i + 1);
     const padFft = fftSeg.length < FFT_WINDOW
       ? [...Array(FFT_WINDOW - fftSeg.length).fill(fftSeg[0] ?? 0), ...fftSeg]
       : fftSeg;
-    features[`${col}_fft_energy`]  = fftEnergy(padFft);
-    features[`${col}_fft_entropy`] = fftEntropy(padFft);
+    const { energy, domHz, entropy } = computeFFT(padFft);
+    features[`${col}_fft_energy`]  = energy;
+    features[`${col}_fft_dom_hz`]  = domHz;
+    features[`${col}_fft_entropy`] = entropy;
   }
 
   // Cross-channel features
