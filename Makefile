@@ -1,4 +1,4 @@
-.PHONY: install serve dashboard test lint typecheck pipeline \
+.PHONY: install serve test lint typecheck pipeline \
         generate-data preprocess features train clean
 
 # ── Dev ──────────────────────────────────────────────────────────────────────
@@ -7,9 +7,6 @@ install:
 
 serve:
 	uvicorn yieldguard.serving.api:app --reload --port 8000
-
-dashboard:
-	streamlit run dashboard/app.py
 
 # ── Pipeline steps ───────────────────────────────────────────────────────────
 generate-data:
@@ -35,7 +32,7 @@ test-fast:
 	pytest tests/ -x -q
 
 lint:
-	ruff check src/ dashboard/
+	ruff check src/
 
 typecheck:
 	mypy src/yieldguard --ignore-missing-imports

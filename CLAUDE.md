@@ -4,14 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-YieldGuard — predictive maintenance system for industrial PLC/IoT sensor streams. Predicts machine failure 24 h in advance using XGBoost/LightGBM on 250+ engineered features from 6 sensor channels.
+YieldGuard — predictive maintenance system for industrial PLC/IoT sensor streams. Predicts machine failure 24 h in advance using XGBoost/LightGBM on 196 engineered features from 6 sensor channels.
 
 ## Commands
 
 ```bash
 # Dev server
 make serve        # uvicorn yieldguard.serving.api:app --reload --port 8000
-make dashboard    # streamlit run dashboard/app.py
 
 # Full pipeline
 make pipeline     # generate-data → preprocess → features → train
@@ -25,7 +24,7 @@ make train
 # Quality
 make test         # pytest tests/ -v
 make test-fast    # pytest tests/ -x -q
-make lint         # ruff check src/ dashboard/
+make lint         # ruff check src/
 make typecheck    # mypy src/yieldguard
 ```
 
@@ -35,7 +34,7 @@ make typecheck    # mypy src/yieldguard
 src/yieldguard/
   data/synthesizer.py      — SyntheticDataGenerator (signal model + degradation physics)
   data/preprocessor.py     — DataPreprocessor (cleaning, imputation, stuck sensor detection)
-  features/engineer.py     — FeatureEngineer(TransformerMixin) — 250+ features
+  features/engineer.py     — FeatureEngineer(TransformerMixin) — 196 features
   models/trainer.py        — FailurePredictionTrainer (CV + Optuna HPO)
   models/evaluator.py      — ModelEvaluator (metrics, SHAP artifacts)
   serving/api.py           — FastAPI app
@@ -44,8 +43,8 @@ src/yieldguard/
   serving/feature_buffer.py — PerMachineBuffer (stateful 288-sample history)
   utils/io.py              — joblib/parquet/yaml helpers
   utils/cv.py              — TimeSeriesExpandingCV
-dashboard/app.py           — Streamlit multi-page dashboard
 configs/config.yaml        — ALL hyperparams, sensor bounds, paths, seeds
+data/demo/                 — sample CSVs for dashboard testing (machine_critical/warning/healthy.csv)
 ```
 
 ## House Rules
@@ -68,5 +67,5 @@ configs/config.yaml        — ALL hyperparams, sensor bounds, paths, seeds
 ## Deployment
 
 - API: Render (Docker) — env var `YIELDGUARD_API_KEY`
-- Dashboard: Streamlit Community Cloud — secrets `API_URL`, `YIELDGUARD_API_KEY`
+- Web: Vercel — auto-deploys from main branch
 - UptimeRobot: pings `GET /health` every 5 min to prevent Render cold-start spin-down

@@ -44,3 +44,12 @@ htmlcov/
 
 # Local context document (private session notes)
 CONTEXT.md
+
+# Test artifacts
+.playwright-mcp/
+web/test-results/
+.pytest_cache/
+
+# Agent/tool artifacts
+skills-lock.json
+.agents/

@@ -21,7 +21,7 @@ jobs:
         run: pip install -r requirements.txt && pip install -e . --no-deps
 
       - name: Lint
-        run: python -m ruff check src/ dashboard/ || true   # non-blocking until tests exist
+        run: python -m ruff check src/ || true
 
       - name: Tests
         run: |

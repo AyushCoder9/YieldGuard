@@ -12,7 +12,6 @@ YieldGuard is an industrial predictive maintenance platform that detects equipme
 |---|---|
 | Web App | [yield-guard-nine.vercel.app](https://yield-guard-nine.vercel.app) |
 | API (FastAPI) | [yieldguard-api.onrender.com/health](https://yieldguard-api.onrender.com/health) |
-| Dashboard (Streamlit) | [yieldguard-app.streamlit.app](https://yieldguard-app.streamlit.app) |
 
 ---
 
@@ -212,7 +211,7 @@ Full test run: **110 tests** across three suites.
 | Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS |
 | UI | framer-motion, recharts, lucide-react |
 | Testing | pytest, vitest, Playwright |
-| Infra | Vercel (web), Render (API), Streamlit Cloud (dashboard) |
+| Infra | Vercel (web), Render (API) |
 
 ---
 
@@ -244,7 +243,6 @@ model:
 |---|---|---|
 | Web | Vercel | Auto-deploys from main |
 | API | Render (Docker) | `GET /health` pinged every 5 min by UptimeRobot |
-| Dashboard | Streamlit Community Cloud | Reads `API_URL` + `YIELDGUARD_API_KEY` from secrets |
 
 API env vars: `YIELDGUARD_API_KEY`
 
@@ -262,14 +260,14 @@ YieldGuard/
 │   ├── serving/                  — FastAPI app, drift monitor, feature buffer
 │   └── utils/                    — CV, IO helpers
 ├── scripts/export_model.py       — export LightGBM → web/public/lib/engine/
-├── tests/                        — 72 Python unit + integration tests
+├── tests/                        — Python unit + integration tests
 ├── web/                          — Next.js app
 │   ├── app/                      — pages: /, /demo, /dashboard, /guide, /about
 │   ├── components/               — Navbar, Footer, UI kit
 │   ├── lib/engine/               — TypeScript inference engine
 │   ├── public/lib/engine/        — model.json, feature_spec.json, demo_scenarios.json
-│   └── tests/                    — 19 TS unit tests + 19 E2E Playwright tests
-├── models/                       — trained .joblib artifacts + training_summary.json
-├── dashboard/app.py              — Streamlit dashboard
+│   └── tests/                    — TS unit tests + E2E Playwright tests
+├── models/                       — trained .joblib artifacts
+├── data/demo/                    — sample CSVs for dashboard testing
 └── Makefile                      — pipeline + dev commands
 ```
