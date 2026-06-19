@@ -106,7 +106,7 @@ function MiniMachineCard({ machine, style }: {
 
   return (
     <div
-      className="glass rounded-xl px-3 py-2.5 w-40 absolute"
+      className="glass rounded-xl px-3 py-2.5 w-40 absolute z-20"
       style={{ ...style, animation: `float ${4 + (style?.animationDelay ? 1 : 0)}s ease-in-out infinite`, animationDelay: style?.animationDelay as string }}
     >
       <div className="flex items-center justify-between mb-1.5">
@@ -273,7 +273,7 @@ export default function HomePage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="relative w-full max-w-sm mx-auto">
+            <div className="relative w-full max-w-sm mx-auto py-6">
               {/* Central card */}
               <GlassPanel glow="signal" padding="p-6" className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
@@ -321,11 +321,11 @@ export default function HomePage() {
               {/* Floating mini cards */}
               <MiniMachineCard
                 machine={DEMO_MACHINES[1]}
-                style={{ top: -16, right: -20, animationDelay: "0s" }}
+                style={{ top: -20, right: 4, animationDelay: "0s" }}
               />
               <MiniMachineCard
                 machine={DEMO_MACHINES[3]}
-                style={{ bottom: -12, left: -20, animationDelay: "1.8s" }}
+                style={{ bottom: -20, left: 4, animationDelay: "1.8s" }}
               />
             </div>
           </motion.div>
